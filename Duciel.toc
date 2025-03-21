@@ -1,0 +1,11 @@
+## Interface: 11200
+## Title: Duciel
+## Version: 0.0.1
+## Notes: Test
+## Author: Duciel
+
+Main.lua
+Debug.lua
+Priest\Priest.lua
+Mage\Mage.lua
+Warrior\Warrior.lua
