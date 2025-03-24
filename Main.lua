@@ -181,6 +181,33 @@ function Duciel.main:SpellCast(spell, unit)
 	end
 end
 
+function Duciel.main:TrinketAndCast(spell, unit, trinket1, trinket2)
+	if trinket1 == nil then
+		trinket1 = true;
+	end
+	if trinket2 == nil then
+		trinket2 = true;
+	end
+	
+	local remainingCooldown, totalCooldown, hasCooldown;
+
+	if trinket1 then
+		remainingCooldown, totalCooldown, hasCooldown = GetInventoryItemCooldown(unit, 13);
+		if hasCooldown == 1 and remainingCooldown == 0 then
+			UseInventoryItem(13);
+		end
+	end
+
+	if trinket2 then
+		remainingCooldown, totalCooldown, hasCooldown = GetInventoryItemCooldown(unit, 14);
+		if hasCooldown == 1 and remainingCooldown == 0 then
+			UseInventoryItem(14);
+		end
+	end
+	
+	Duciel.main:SpellCast(spell, unit);
+end
+
 function Duciel.main:UseBagItem(item, self)
 	local bag, slot = Duciel.main:FindItem(item);
 	UseContainerItem(bag, slot, self);
@@ -249,9 +276,6 @@ function Duciel.main:SplitHyperlink(link)
 	--Duciel.debug:print("d : "..d)
 	
 	return color, objectType, tonumber(id);
-end
-
-function Duciel.main:UseItem(item)
 end
 
 function Duciel.main:CheckHP(unit)
