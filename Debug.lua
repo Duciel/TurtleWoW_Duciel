@@ -5,10 +5,11 @@ setmetatable(Duciel.debug, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
 function Duciel.debug:listDebuff(unit)
-	print("listDebuff : " .. unit);
-	if unit == nil then
+	if unit == nil or unit == "" then
 		unit = "target";
 	end
+	print("listDebuff : " .. unit);
+	print("X : ID (stack) | source | Icon Name");
 	
 	i = 1;
 	icon = UnitDebuff(unit, i);
@@ -30,10 +31,11 @@ function Duciel.debug:listDebuff(unit)
 end
 
 function Duciel.debug:listBuff(unit)
-	print("listBuff : " .. unit);
-	if unit == nil then
+	if unit == nil or unit == "" then
 		unit = "target";
 	end
+	print("listBuff : " .. unit);
+	print("X : ID (stack) | Icon Name");
 	
 	i = 1;
 	icon = UnitBuff(unit, i);
@@ -45,6 +47,18 @@ function Duciel.debug:listBuff(unit)
 			print(i .. " : " .. id .. " (" .. stack .. ") | " .. icon);
 		end
 		i = i + 1;
+	end
+end
+
+function Duciel.debug:listSpellBook()
+	local i = 1; 
+	local spellName, spellRank = GetSpellName(i, BOOKTYPE_SPELL);
+	print("X : Spell Name (Spell Rank)");
+	
+	while spellName do
+		print(i .. " : " .. spellName .. '(' .. spellRank .. ')' );
+		i = i + 1;
+		spellName, spellRank = GetSpellName(i, BOOKTYPE_SPELL);
 	end
 end
 
