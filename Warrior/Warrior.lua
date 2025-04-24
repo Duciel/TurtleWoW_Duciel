@@ -5,6 +5,7 @@ setmetatable(Duciel.warrior, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
 function Duciel.warrior:Sunder(unit)
+	spell = "Sunder Armor";
 	if unit == nil then
 		unit = "target"
 	end
@@ -17,13 +18,13 @@ function Duciel.warrior:Sunder(unit)
 		local exposeArray = {8647, 8648, 8649, 8650, 8651, 8652, 11197, 11198, 11199, 11200, 30965, 30996};
 
 		if not(Duciel.main:FindDebuff(sunderArray, unit, 5) or Duciel.main:FindDebuff(exposeArray, unit)) then
-			Duciel.main:SpellCast("Sunder Armor");
+			Duciel.main:SpellCast(spell);
 			return;
 		end
 		
 		-- Make sure sunders do not drop
-		if (Duciel.main:FindDebuff(sunderArray, unit, 5) and Duciel.main:IsNotClipping("Sunder Armor", 27)) then
-			Duciel.main:SpellCast("Sunder Armor");
+		if (Duciel.main:FindDebuff(sunderArray, unit, 5) and Duciel.main.cooldownTracker[spell] + 27 < GetTime()) then
+			Duciel.main:SpellCast(spell);
 			return;
 		end
 	end
@@ -38,6 +39,23 @@ function Duciel.warrior:DemoShout(unit)
 
 	if not(Duciel.main:FindDebuff(demoArray, unit)) then
 		Duciel.main:SpellCast("Demoralizing Shout");
+	end
+end
+
+function Duciel.warrior:Taunt(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
+	if UnitName("targettarget") ~= UnitName("player") then
+		Duciel.main:SpellCast("Taunt", unit);
+	end
+end
+
+function Duciel.warrior:Rend()
+	spell = "Rend";
+	if Duciel.main.cooldownTracker[spell] == nil or Duciel.main.cooldownTracker[spell] + 21 < GetTime() then
+		Duciel.main:SpellCast(spell);
 	end
 end
 
@@ -111,6 +129,12 @@ end
 
 function Duciel.warrior:FuryDPS(noAOE)
 	local rage = UnitMana("player");
+	
+	local _, _, isZerkActive = GetShapeshiftFormInfo(3)
+	if rage <= 25 and isZerkActive == nil then
+		CastShapeshiftForm(3);
+	end
+	
 	Duciel.warrior:BattleShout();
 	Duciel.warrior:Sunder();
 	--Duciel.warrior:DemoShout();
@@ -137,16 +161,21 @@ function Duciel.warrior:FuryDPS(noAOE)
 	
 	Duciel.main:SpellCast("Bloodthirst");
 	
-	if Duciel.main:IsNotClipping("Bloodthirst") then
+	--if Duciel.main:IsNotClipping("Bloodthirst") then
 		if not(noAOE) then
 			Duciel.main:SpellCast("Whirlwind");
 		end
+		
+		--if (Duciel.main:IsNotClipping("Whirlwind") or noAOE) then
+			--Duciel.warrior:Rend();
+			--Duciel.main:SpellCast("Overpower");
 
-		if ((Duciel.main:IsNotClipping("Whirlwind") or noAOE) and rage >= 52) then
-			Duciel.main:SpellCast("Hamstring");
-			Duciel.main:SpellCast("Sunder Armor");
-		end
-	end
+			if rage >= 52 then
+				Duciel.main:SpellCast("Hamstring");
+				Duciel.main:SpellCast("Sunder Armor");
+			end
+		--end
+	--end
 
 	if rage >= 42 then
 		Duciel.main:SpellCast("Heroic Strike");
@@ -159,12 +188,11 @@ function Duciel.warrior:FuryAOE()
 	--Duciel.warrior:DemoShout();
 
 	Duciel.main:SpellCast("Whirlwind");
+	Duciel.main:SpellCast("Execute");
+	Duciel.main:SpellCast("Bloodthirst");
 
 	if Duciel.main:IsNotClipping("Whirlwind") and rage >= 55 then
 		Duciel.warrior:Sunder();
-		if rage >= 75 then
-			Duciel.main:SpellCast("Bloodthirst");
-		end
 	end
 
 	if rage >= 45 then

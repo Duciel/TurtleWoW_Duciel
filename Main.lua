@@ -139,16 +139,25 @@ function Duciel.main:GetSpellID(name, booktype)
 	end
 end
 
+function Duciel.main:SplitRankFromSpell(spell)
+	local spellName = string.gsub(spell, "%(Rank %d+%)", "");
+	local spellRank = 1;
+	
+	return spellName, spellRank;
+end
+
 --- Function to get the Cooldown from a spell
 -- @param name						name of the spell
 -- @booktype [opt=BOOKTYPE_SPELL]	where to look for the spell, default player spell book
 -- @return cooldown					Return the cooldown of the spell (not the remaining cooldown, 0 if spell is ready)
-function Duciel.main:GetSpellCooldownByName(name, booktype)
+function Duciel.main:GetSpellCooldownByName(spell, booktype)
 	if booktype == nil then
 		booktype = BOOKTYPE_SPELL;
 	end
+	
+	spellName = Duciel.main:SplitRankFromSpell(spell);
 
-	local spellID = Duciel.main:GetSpellID(name);
+	local spellID = Duciel.main:GetSpellID(spellName);
 	local StartTime, Duration, Enable = GetSpellCooldown(spellID, booktype);
 	return Duration;
 end
@@ -164,14 +173,27 @@ end
 -- @param name						name of the spell
 -- @booktype [opt=BOOKTYPE_SPELL]	where to look for the spell, default player spell book
 -- @return cooldown					Return the cooldown of the spell (not the remaining cooldown, 0 if spell is ready)
-function Duciel.main:SpellCast(spell, unit)	
+function Duciel.main:SpellCast(spell, unit, rank)
 	if unit == nil then
 		unit = "target";
+	end
+	
+	if rank ~= nil then
+		spell = spell .. "(Rank " .. rank .. ")";
 	end
 	
 	if Duciel.main:FindDebuff(28431, "player") then -- Poison Charge
 		Duciel.main:UseBagItem(3386) -- Elixir of Poison Resistance
 	end
+	
+	--local spellName, spellRank = Duciel.main:SplitRankFromSpell(spell);
+	
+	--print("Spell : " .. spellName);
+	--print("Rank : " .. spellRank);
+	
+	--local spellData = TheoryCraft_GetSpellDataByName(spellName, spellRank);
+	
+	--print("Cost : " .. spellData.basemanacost);
 
 	if Duciel.main:GetSpellCooldownByName(spell) == 0 then
 		CastSpellByName(spell, unit);
