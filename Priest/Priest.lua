@@ -4,10 +4,6 @@ Duciel.priest = {};
 setmetatable(Duciel.priest, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
-function Toto()
-    print("toto");
-end
-
 function SWPain(unit)
     unit = unit or "target";
     name, icon, col, line, rank, maxRank = GetTalentInfo(3, 4); -- Improved Shadow Word: Pain

@@ -127,7 +127,7 @@ function Duciel.warrior:Consumes(spec)
 	end
 end
 
-function Duciel.warrior:FuryDPS(noAOE)
+function Duciel.warrior:FuryDPS(noAOE, noSunderr)
 	local rage = UnitMana("player");
 	
 	local _, _, isZerkActive = GetShapeshiftFormInfo(3)
@@ -136,7 +136,9 @@ function Duciel.warrior:FuryDPS(noAOE)
 	end
 	
 	Duciel.warrior:BattleShout();
-	Duciel.warrior:Sunder();
+	if not(noSunderr) then
+		Duciel.warrior:Sunder();
+	end
 	--Duciel.warrior:DemoShout();
 	
 	local currentTargetLife = UnitHealth("target") / UnitHealthMax("target")
