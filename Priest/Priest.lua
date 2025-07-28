@@ -4,18 +4,18 @@ Duciel.priest = {};
 setmetatable(Duciel.priest, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
-function SWPain(unit)
+function Duciel.priest:SWPain(unit)
     unit = unit or "target";
     name, icon, col, line, rank, maxRank = GetTalentInfo(3, 4); -- Improved Shadow Word: Pain
-    swpDuration = 18 + (rank * 3);
-    
-    if (not(Duciel.main:FindDebuff(10894, unit)) or swpain == nil or swpain < GetTime() - swpDuration) then
-        CastSpellByName("Shadow Word: Pain");
-        swpain = GetTime();
-    end
+    swpDuration = 18 + (rank * 3) + 3;
+	
+    spell = "Shadow Word: Pain";
+	if Duciel.main.cooldownTracker[spell] == nil or Duciel.main.cooldownTracker[spell] + swpDuration < GetTime() then
+        Duciel.main:SpellCast(spell);
+	end
 end
 
-function VampEmbrace(unit)
+function Duciel.priest:VampEmbrace(unit)
     unit = unit or "target"
     if UnitName(unit) == "Loatheb" then
         vampDuration = 30
@@ -23,28 +23,26 @@ function VampEmbrace(unit)
         vampDuration = 60
     end
 
-    if (not(Duciel.main:FindDebuff(15286, unit)) or vampEmbrace == nil or vampEmbrace < GetTime() - vampDuration) then
-        CastSpellByName("Vampiric Embrace");
-        vampEmbrace = GetTime();
+    spell = "Vampiric Embrace";
+	if Duciel.main.cooldownTracker[spell] == nil or Duciel.main.cooldownTracker[spell] + vampDuration < GetTime() then
+        Duciel.main:SpellCast(spell);
     end
 end
 
-function MindFlay()
+function Duciel.priest:ShadowDPS(noVamp)
     if (pfUI.env.UnitChannelInfo("player")) then
         return;
     else
-        CastSpellByName("Mind Flay");
-    end
+		if not(noVamp) then
+			Duciel.priest:VampEmbrace();
+		end
+		Duciel.priest:SWPain();
+		Duciel.main:SpellCast("Mind Blast");
+        Duciel.main:SpellCast("Mind Flay");
+	end
 end
 
-function shadowDPS()
-    VampEmbrace();
-    SWPain();
-    CastSpellByName("Mind Blast");
-    MindFlay();
-end
-
-function CancelHealing(spellName, missingHPThreshold, latency)
+function Duciel.priest:CancelHealing(spellName, missingHPThreshold, latency)
 	if latency == nil then
 		_, _, latency = GetNetStats();
 	end
@@ -58,6 +56,6 @@ function CancelHealing(spellName, missingHPThreshold, latency)
             end
         end
     else
-        CastSpellByName(spellName);
+        Duciel.main:SpellCast(spellName);
     end
 end

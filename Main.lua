@@ -203,11 +203,11 @@ function Duciel.main:SpellCast(spell, unit, rank)
 	end
 end
 
-function Duciel.main:TrinketAndCast(spell, unit, trinket1, trinket2)
-	if trinket1 == nil then
+function Duciel.main:UseTrinket(trinket1, trinket2)
+	if trinket1 ~= nil then
 		trinket1 = true;
 	end
-	if trinket2 == nil then
+	if trinket2 ~= nil then
 		trinket2 = true;
 	end
 	
@@ -226,7 +226,10 @@ function Duciel.main:TrinketAndCast(spell, unit, trinket1, trinket2)
 			UseInventoryItem(14);
 		end
 	end
-	
+end
+
+function Duciel.main:TrinketAndCast(spell, unit, trinket1, trinket2)
+	Duciel.main:UseTrinket(trinket1, trinket2)
 	Duciel.main:SpellCast(spell, unit);
 end
 
