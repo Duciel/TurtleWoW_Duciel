@@ -6,6 +6,7 @@ setmetatable(Duciel.main, {__index = getfenv(0)});
 setfenv(1, Duciel.main);
 
 cooldownTracker = {};
+debuffTracker = {};
 	
 function Duciel.main:GetFrame()
     return Duciel;
@@ -155,8 +156,8 @@ function Duciel.main:GetSpellCooldownByName(spell, booktype)
 		booktype = BOOKTYPE_SPELL;
 	end
 	
-	spellName = Duciel.main:SplitRankFromSpell(spell);
-
+	local spellName = Duciel.main:SplitRankFromSpell(spell);
+	
 	local spellID = Duciel.main:GetSpellID(spellName);
 	local StartTime, Duration, Enable = GetSpellCooldown(spellID, booktype);
 	return Duration;
@@ -185,20 +186,15 @@ function Duciel.main:SpellCast(spell, unit, rank)
 	if Duciel.main:FindDebuff(28431, "player") then -- Poison Charge
 		Duciel.main:UseBagItem(3386) -- Elixir of Poison Resistance
 	end
-	
-	--local spellName, spellRank = Duciel.main:SplitRankFromSpell(spell);
-	
-	--print("Spell : " .. spellName);
-	--print("Rank : " .. spellRank);
-	
-	--local spellData = TheoryCraft_GetSpellDataByName(spellName, spellRank);
-	
-	--print("Cost : " .. spellData.basemanacost);
 
 	if Duciel.main:GetSpellCooldownByName(spell) == 0 then
 		CastSpellByName(spell, unit);
 		if not(Duciel.main:GetSpellCooldownByName(spell) == 0) then
 			cooldownTracker[spell] = GetTime();
+			
+			local _, guid = UnitExists(unit);
+			local id = tostring(guid) .. spell;
+			debuffTracker[id] = GetTime();
 		end
 	end
 end
@@ -262,13 +258,13 @@ function Duciel.main:FindItem(item)
 		local slot = 1;
 		local maxSlot = GetContainerNumSlots(bag);
 		while (slot <= maxSlot) do
-			itemLink = GetContainerItemLink(bag, slot);
+			local itemLink = GetContainerItemLink(bag, slot);
 			if itemLink then
-				_, _, id = Duciel.main:SplitHyperlink(itemLink);
+				local _, _, id = Duciel.main:SplitHyperlink(itemLink);
 				if (type == "number" and item == id) then
 					return bag, slot;
 				else
-					name = GetItemInfo(id);
+					local name = GetItemInfo(id);
 					if (type == "string" and item == name) then
 						return bag, slot;
 					end
@@ -317,4 +313,13 @@ function Duciel.main:CheckMana(unit)
 	end
 
 	return UnitMana(unit) / UnitManaMax(unit) * 100;
+end
+
+function Duciel.main:IsInRange(unit, range, form)
+	local distance = UnitXP("distanceBetween", "player", unit, form);
+	if distance <= range then
+		return true;
+	else 
+		return false;
+	end
 end

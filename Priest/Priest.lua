@@ -5,44 +5,63 @@ setmetatable(Duciel.priest, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
 function Duciel.priest:SWPain(unit)
-    unit = unit or "target";
-    name, icon, col, line, rank, maxRank = GetTalentInfo(3, 4); -- Improved Shadow Word: Pain
-    swpDuration = 18 + (rank * 3) + 3;
+	if unit == nil then
+		unit = "target"
+	end
 	
-    spell = "Shadow Word: Pain";
-	if Duciel.main.cooldownTracker[spell] == nil or Duciel.main.cooldownTracker[spell] + swpDuration < GetTime() then
+    local spell = "Shadow Word: Pain";
+	
+    local name, icon, col, line, rank, maxRank = GetTalentInfo(3, 4); -- Improved Shadow Word: Pain
+    local swpDuration = 18 + (rank * 3) + 3;
+	
+	local _, guid = UnitExists(unit);
+	local id = tostring(guid) .. spell;
+	if Duciel.main.debuffTracker[id] == nil or Duciel.main.debuffTracker[id] + swpDuration < GetTime() then
         Duciel.main:SpellCast(spell);
 	end
 end
 
 function Duciel.priest:VampEmbrace(unit)
-    unit = unit or "target"
-    if UnitName(unit) == "Loatheb" then
-        vampDuration = 30
-    else
-        vampDuration = 60
-    end
+	if unit == nil then
+		unit = "target"
+	end
 
-    spell = "Vampiric Embrace";
-	if Duciel.main.cooldownTracker[spell] == nil or Duciel.main.cooldownTracker[spell] + vampDuration < GetTime() then
+    local spell = "Vampiric Embrace";
+	
+	local vampDuration = 60;
+    if UnitName(unit) == "Loatheb" then
+        vampDuration = 30;
+    end
+	
+	local _, guid = UnitExists(unit);
+	local id = tostring(guid) .. spell;
+	if Duciel.main.debuffTracker[id] == nil or Duciel.main.debuffTracker[id] + vampDuration < GetTime() then
         Duciel.main:SpellCast(spell);
     end
 end
 
-function Duciel.priest:ShadowDPS(noVamp)
+function Duciel.priest:ShadowDPS(unit, noVamp)
+	if unit == nil then
+		unit = "target"
+	end
+	
     if (pfUI.env.UnitChannelInfo("player")) then
         return;
     else
 		if not(noVamp) then
-			Duciel.priest:VampEmbrace();
+			Duciel.priest:VampEmbrace(unit);
 		end
-		Duciel.priest:SWPain();
-		Duciel.main:SpellCast("Mind Blast");
-        Duciel.main:SpellCast("Mind Flay");
+		Duciel.priest:SWPain(unit);
+		Duciel.main:SpellCast("Mind Blast", unit);
+        Duciel.main:SpellCast("Mind Flay", unit);
 	end
 end
 
-function Duciel.priest:CancelHealing(spellName, missingHPThreshold, latency)
+function Duciel.priest:CancelHealing(spellName, unit, missingHPThreshold, latency)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	if latency == nil then
 		_, _, latency = GetNetStats();
 	end
@@ -50,12 +69,12 @@ function Duciel.priest:CancelHealing(spellName, missingHPThreshold, latency)
     cast, nameSubtext, text, texture, startTime, endTime, isTradeSkill = pfUI.env.UnitCastingInfo("player");
     if (cast) then
         if (endTime <= GetTime()*1000 + latency) then
-            missingHP = UnitHealthMax("target") - UnitHealth("target");
+            local missingHP = UnitHealthMax("target") - UnitHealth("target");
             if (missingHP <= missingHPThreshold) then
                 SpellStopCasting();
             end
         end
     else
-        Duciel.main:SpellCast(spellName);
+        Duciel.main:SpellCast(spellName, unit);
     end
 end

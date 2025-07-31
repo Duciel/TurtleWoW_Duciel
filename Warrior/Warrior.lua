@@ -22,23 +22,43 @@ function Duciel.warrior:Sunder(unit)
 			return;
 		end
 		
+		local _, guid = UnitExists(unit);
+		local id = tostring(guid) .. spell;
+		
 		-- Make sure sunders do not drop
-		if (Duciel.main:FindDebuff(sunderArray, unit, 5) and Duciel.main.cooldownTracker[spell] + 27 < GetTime()) then
+		if (Duciel.main:FindDebuff(sunderArray, unit, 5) and Duciel.main.debuffTracker[id] + 27 < GetTime()) then
 			Duciel.main:SpellCast(spell);
 			return;
 		end
 	end
 end
 
+function Duciel.warrior:Whirlwind(unit)	
+	if Duciel.main:IsInRange(unit, 8, "AoE") then
+		Duciel.main:SpellCast("Whirlwind", unit);
+	end
+end
+
+function Duciel.warrior:ThunderClap(unit)
+	if Duciel.main:IsInRange(unit, 8, "AoE") then
+		Duciel.main:SpellCast("Thunder Clap", unit);
+	end
+end
+
 function Duciel.warrior:DemoShout(unit)
+	spell = "Demoralizing Shout";
 	if unit == nil then
 		unit = "target"
 	end
 
 	local demoArray = {9898, 11556, 11559, 27579};
+	local _, guid = UnitExists(unit);
+	local id = tostring(guid) .. spell;
 
-	if not(Duciel.main:FindDebuff(demoArray, unit)) then
-		Duciel.main:SpellCast("Demoralizing Shout");
+	if not(Duciel.main:FindDebuff(demoArray, unit)) and (Duciel.main.debuffTracker[id] == nil or Duciel.main.debuffTracker[id] + 30 < GetTime()) then
+		if Duciel.main:IsInRange(unit, 10, "AoE") then
+			Duciel.main:SpellCast(spell);
+		end
 	end
 end
 
@@ -52,10 +72,17 @@ function Duciel.warrior:Taunt(unit)
 	end
 end
 
-function Duciel.warrior:Rend()
+function Duciel.warrior:Rend(unit)
 	spell = "Rend";
-	if Duciel.main.cooldownTracker[spell] == nil or Duciel.main.cooldownTracker[spell] + 21 < GetTime() then
-		Duciel.main:SpellCast(spell);
+	if unit == nil then
+		unit = "target"
+	end
+	
+	local _, guid = UnitExists(unit);
+	local id = tostring(guid) .. spell;
+	
+	if Duciel.main.debuffTracker[id] == nil or Duciel.main.debuffTracker[id] + 21 < GetTime() then
+		Duciel.main:SpellCast(spell, unit);
 	end
 end
 
@@ -127,7 +154,11 @@ function Duciel.warrior:Consumes(spec)
 	end
 end
 
-function Duciel.warrior:FuryDPS(noAOE, noSunder)
+function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local rage = UnitMana("player");
 	
 	local _, _, isZerkActive = GetShapeshiftFormInfo(3)
@@ -139,38 +170,38 @@ function Duciel.warrior:FuryDPS(noAOE, noSunder)
 	if not(noSunder) then
 		Duciel.warrior:Sunder();
 	end
-	--Duciel.warrior:DemoShout();
 	
-	local currentTargetLife = UnitHealth("target") / UnitHealthMax("target");
+	local currentTargetLife = UnitHealth(unit) / UnitHealthMax(unit);
 	
-	if (UnitClassification("target") == "worldboss" and currentTargetLife <= 0.30) then
+	if (UnitClassification("target") == "worldboss" and currentTargetLife <= 0.35) then
 		--Duciel.main:UseTrinket(true, true);
 		Duciel.main:SpellCast("Death Wish");
 	end
 	
-	if (UnitClassification("target") == "worldboss" and currentTargetLife <= 0.25) then
+	if (UnitClassification("target") == "worldboss" and currentTargetLife <= 0.30) then
 		Duciel.main:SpellCast("Blood Fury");
 	end
 	
-	Duciel.main:SpellCast("Bloodthirst");
+	Duciel.main:SpellCast("Bloodthirst", unit);
 	
 	if currentTargetLife <= 0.2 then
-		if (UnitClassification("target") == "worldboss" and rage <= 85) then
+		if (UnitClassification(unit) == "worldboss" and rage <= 85) then
 			Duciel.main:SpellCast("Bloodrage");
 		end
-		Duciel.main:SpellCast("Execute");
+		Duciel.main:SpellCast("Execute", unit);
 	end
 	
 	if not(noAOE) then
-		Duciel.main:SpellCast("Whirlwind");
+		Duciel.warrior:Whirlwind(unit);
 	end
 		
-	Duciel.warrior:Rend();
-	Duciel.main:SpellCast("Overpower");
+	Duciel.warrior:Rend(unit);
+	Duciel.main:SpellCast("Overpower", unit);
 
 	if rage >= 52 then
-		Duciel.main:SpellCast("Hamstring");
-		Duciel.main:SpellCast("Sunder Armor");
+		Duciel.warrior:DemoShout(unit);
+		Duciel.main:SpellCast("Hamstring", unit);
+		Duciel.main:SpellCast("Sunder Armor", unit);
 	end
 
 	if Duciel.main:IsNotClipping("Bloodthirst") then
@@ -180,23 +211,28 @@ function Duciel.warrior:FuryDPS(noAOE, noSunder)
 	end
 end
 
-function Duciel.warrior:FuryAOE()
-	local rage = UnitMana("player");
-	Duciel.warrior:BattleShout();
-	--Duciel.warrior:DemoShout();
-
-	Duciel.main:SpellCast("Whirlwind");
+function Duciel.warrior:FuryAOE(unit)
+	if unit == nil then
+		unit = "target"
+	end
 	
-	local currentTargetLife = UnitHealth("target") / UnitHealthMax("target");
+	local rage = UnitMana("player");
+	
+	Duciel.warrior:BattleShout();
+
+	Duciel.warrior:Whirlwind(unit);
+	
+	local currentTargetLife = UnitHealth(unit) / UnitHealthMax(unit);
 	
 	if currentTargetLife <= 0.2 then
-		Duciel.main:SpellCast("Execute");
+		Duciel.main:SpellCast("Execute", unit);
 	else
-		Duciel.main:SpellCast("Bloodthirst");
+		Duciel.main:SpellCast("Bloodthirst", unit);
 	end
 
 	if Duciel.main:IsNotClipping("Whirlwind") and rage >= 55 then
-		Duciel.warrior:Sunder();
+		Duciel.warrior:DemoShout(unit);
+		Duciel.warrior:Sunder(unit);
 	end
 
 	if rage >= 45 then
@@ -204,72 +240,86 @@ function Duciel.warrior:FuryAOE()
 	end
 end
 
-function Duciel.warrior:FuryProtAOE()
+function Duciel.warrior:FuryProtAOE(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local rage = UnitMana("player");
 
-	Duciel.main:SpellCast("Thunder Clap");
+	Duciel.warrior:ThunderClap(unit);
 
 	if rage >= 40 then
 		Duciel.main:SpellCast("Cleave");
 		
 		if rage >= 55 then
 			Duciel.warrior:BattleShout();
-			Duciel.warrior:DemoShout();
-			Duciel.warrior:Sunder();
+			Duciel.warrior:DemoShout(unit);
+			Duciel.warrior:Sunder(unit);
 			if rage >= 75 then
-				Duciel.main:SpellCast("Bloodthirst");
+				Duciel.main:SpellCast("Bloodthirst", unit);
 			end
 		end
 	end
 end
 
-function Duciel.warrior:FuryProt()
+function Duciel.warrior:FuryProt(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local rage = UnitMana("player");
 	
-	Duciel.main:SpellCast("Bloodthirst");
-	Duciel.main:SpellCast("Revenge");
+	Duciel.main:SpellCast("Bloodthirst", unit);
+	Duciel.main:SpellCast("Revenge", unit);
 
 	if Duciel.main:IsNotClipping("Bloodthirst") and rage >= 42 then
-		Duciel.main:SpellCast("Heroic Strike");
+		Duciel.main:SpellCast("Heroic Strike", unit);
 		
 		if rage >= 52 then
 			Duciel.warrior:BattleShout();
-			Duciel.warrior:DemoShout();
-			Duciel.main:SpellCast("Sunder Armor");
+			Duciel.warrior:DemoShout(unit);
+			Duciel.main:SpellCast("Sunder Armor", unit);
 		end
 	end
 end
 
 function Duciel.warrior:DeepProt()
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local rage = UnitMana("player");
 	local _, _, battleStanceActive = GetShapeshiftFormInfo(1);
 	local _, _, defensiveStanceActive = GetShapeshiftFormInfo(2);
 	local _, _, berserkerStanceActive = GetShapeshiftFormInfo(3);
+	
+	local currentTargetLife = UnitHealth(unit) / UnitHealthMax(unit);
 
-    if UnitName(unit) == "Vaelastrasz the Corrupt" and currentTargetLife <= 0.2 and defensiveStanceActive ~= 1 then
-		Duciel.main:SpellCast("Execute");
+    if (UnitName(unit) == "Vaelastrasz the Corrupt" and currentTargetLife <= 0.2 and defensiveStanceActive ~= 1) then
+		Duciel.main:SpellCast("Execute", unit);
 	end
 
-	Duciel.main:SpellCast("Shield Slam");
-	Duciel.main:SpellCast("Concussion Blow");
+	Duciel.main:SpellCast("Shield Slam", unit);
+	Duciel.main:SpellCast("Concussion Blow", unit);
 	
 	if battleStanceActive == 1 then
-		Duciel.main:SpellCast("Overpower");
+		Duciel.main:SpellCast("Overpower", unit);
 	else 
 		if defensiveStanceActive == 1 then
-			Duciel.main:SpellCast("Revenge");
+			Duciel.main:SpellCast("Revenge", unit);
 		else 
-			Duciel.main:SpellCast("Whirlwind");
+			Duciel.warrior:Whirlwind(unit);
 		end
 	end
 
 	if Duciel.main:IsNotClipping("Shield Slam") and Duciel.main:IsNotClipping("Concussion Blow") and rage >= 30 then
 		Duciel.warrior:BattleShout();
-		Duciel.warrior:DemoShout();
+		Duciel.warrior:DemoShout(unit);
 		if battleStanceActive == 1 or defensiveStanceActive == 1 then
-			Duciel.warrior:Rend();
+			Duciel.warrior:Rend(unit);
 		end
-		Duciel.main:SpellCast("Sunder Armor");
+		Duciel.main:SpellCast("Sunder Armor", unit);
 		
 		if rage >= 45 then
 			Duciel.main:SpellCast("Heroic Strike");
@@ -277,28 +327,32 @@ function Duciel.warrior:DeepProt()
 	end
 end
 
-function Duciel.warrior:DeepProtAOE()
+function Duciel.warrior:DeepProtAOE(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local rage = UnitMana("player");
 	local _, _, battleStanceActive = GetShapeshiftFormInfo(1);
 	local _, _, defensiveStanceActive = GetShapeshiftFormInfo(2);
 	local _, _, berserkerStanceActive = GetShapeshiftFormInfo(3);
 	
 	if battleStanceActive == 1 or defensiveStanceActive == 1 then
-		Duciel.main:SpellCast("Thunder Clap");
+		Duciel.warrior:ThunderClap(unit);
 	else 
-		Duciel.main:SpellCast("Whirlwind");
+		Duciel.warrior:Whirlwind(unit);
 	end
 
 	if rage >= 30 then
 		Duciel.warrior:BattleShout();
-		Duciel.warrior:DemoShout();
+		Duciel.warrior:DemoShout(unit);
 		if rage >= 50 then
 			Duciel.main:SpellCast("Cleave");
 		end
 		
 		if rage >= 65 then
-			Duciel.main:SpellCast("Shield Slam");
-			Duciel.main:SpellCast("Concussion Blow");
+			Duciel.main:SpellCast("Shield Slam", unit);
+			Duciel.main:SpellCast("Concussion Blow", unit);
 		end
 	end
 end
