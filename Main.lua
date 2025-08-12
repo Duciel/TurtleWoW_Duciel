@@ -4,9 +4,6 @@ Duciel.main = {};
 
 setmetatable(Duciel.main, {__index = getfenv(0)});
 setfenv(1, Duciel.main);
-
-cooldownTracker = {};
-debuffTracker = {};
 	
 function Duciel.main:GetFrame()
     return Duciel;
@@ -14,6 +11,28 @@ end
 
 function Duciel.main:GetEnv()
     return Duciel.main;
+end
+
+local combatStartTime;
+local cooldownTracker = {};
+local debuffTracker = setmetatable({}, {
+	__index = function(t1,k1)
+		t1[k1] = setmetatable({}, {
+			__index = function(t2,k2)
+				t2[k2] = 0;
+				return t2[k2];
+			end
+		})
+		return t1[k1];
+	end
+});
+
+function Duciel.main:GetCooldownTracker(spell)
+	return cooldownTracker[spell];
+end
+
+function Duciel.main:GetDebuffTracker(spell, guid)
+	return debuffTracker[spell][guid];
 end
 
 --- Function to check if a debuff is present on the unit
@@ -193,8 +212,7 @@ function Duciel.main:SpellCast(spell, unit, rank)
 			cooldownTracker[spell] = GetTime();
 			
 			local _, guid = UnitExists(unit);
-			local id = tostring(guid) .. spell;
-			debuffTracker[id] = GetTime();
+			debuffTracker[spell][guid] = GetTime();
 		end
 	end
 end
@@ -210,14 +228,14 @@ function Duciel.main:UseTrinket(trinket1, trinket2)
 	local remainingCooldown, totalCooldown, hasCooldown;
 
 	if trinket1 then
-		remainingCooldown, totalCooldown, hasCooldown = GetInventoryItemCooldown(unit, 13);
+		remainingCooldown, totalCooldown, hasCooldown = GetInventoryItemCooldown("player", 13);
 		if hasCooldown == 1 and remainingCooldown == 0 then
 			UseInventoryItem(13);
 		end
 	end
 
 	if trinket2 then
-		remainingCooldown, totalCooldown, hasCooldown = GetInventoryItemCooldown(unit, 14);
+		remainingCooldown, totalCooldown, hasCooldown = GetInventoryItemCooldown("player", 14);
 		if hasCooldown == 1 and remainingCooldown == 0 then
 			UseInventoryItem(14);
 		end
@@ -239,7 +257,7 @@ function Duciel.main:IsNotClipping(spell, threshold)
 		threshold = 1.2;
 	end
 		
-	local spellTime = Duciel.main.cooldownTracker[spell];
+	local spellTime = Duciel.main:GetCooldownTracker(spell);
 	if spellTime == nil then
 		spellTime = 0;
 	end
@@ -276,11 +294,11 @@ function Duciel.main:FindItem(item)
 	end
 end
 
-function Duciel.main:EquipItem(item, slot)
+function Duciel.main:EquipItem(item, equipSlot)
 	if not(CursorHasItem()) then
-		local bag, slot = Duciel.main:FindItem(item);
-		PickupContainerItem(bag, slot);
-		EquipCursorItem(slot);
+		local bag, invSlot = Duciel.main:FindItem(item);
+		PickupContainerItem(bag, invSlot);
+		EquipCursorItem(equipSlot);
 	end
 end
 
@@ -316,10 +334,47 @@ function Duciel.main:CheckMana(unit)
 end
 
 function Duciel.main:IsInRange(unit, range, form)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local distance = UnitXP("distanceBetween", "player", unit, form);
-	if distance <= range then
-		return true;
-	else 
+	if distance > range or distance == nil then
 		return false;
+	else 
+		return true;
 	end
 end
+
+function Duciel.main:ElapsedFightTime()	
+	if combatStartTime == nil then
+		return;
+	end
+	
+	return GetTime() - combatStartTime;
+end
+
+function Duciel.main:EstimatedFightTimeLeft(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
+	if combatStartTime == nil then
+		return nil;
+	end
+	
+	local currentUnitLife = Duciel.main:CheckHP(unit);
+	return currentUnitLife * (100 - currentUnitLife / Duciel.main:ElapsedFightTime());
+end
+
+Duciel:RegisterEvent("PLAYER_REGEN_DISABLED");
+Duciel:RegisterEvent("PLAYER_REGEN_ENABLED");
+
+Duciel:SetScript("OnEvent", function()
+	if event == "PLAYER_REGEN_DISABLED" then
+		combatStartTime = GetTime();
+	end
+	if event == "PLAYER_REGEN_ENABLED" then
+		combatStartTime = nil;
+	end
+end)
