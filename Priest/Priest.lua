@@ -15,8 +15,7 @@ function Duciel.priest:SWPain(unit)
     local swpDuration = 18 + (rank * 3) + 3;
 	
 	local _, guid = UnitExists(unit);
-	local id = tostring(guid) .. spell;
-	if Duciel.main.debuffTracker[id] == nil or Duciel.main.debuffTracker[id] + swpDuration < GetTime() then
+	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + swpDuration < GetTime() then
         Duciel.main:SpellCast(spell);
 	end
 end
@@ -34,8 +33,7 @@ function Duciel.priest:VampEmbrace(unit)
     end
 	
 	local _, guid = UnitExists(unit);
-	local id = tostring(guid) .. spell;
-	if Duciel.main.debuffTracker[id] == nil or Duciel.main.debuffTracker[id] + vampDuration < GetTime() then
+	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + vampDuration < GetTime() then
         Duciel.main:SpellCast(spell);
     end
 end

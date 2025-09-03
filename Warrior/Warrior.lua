@@ -217,7 +217,7 @@ end
 
 function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 	
 	local rage = UnitMana("player");
@@ -239,8 +239,11 @@ function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
 	Duciel.warrior:Execute(unit);
 	Duciel.warrior:Whirlwind(unit, noAOE);
 		
-	Duciel.warrior:Rend(unit);
-	Duciel.main:SpellCast("Overpower", unit);
+	local name, icon, col, line, rank, maxRank = GetTalentInfo(1, 2);
+	if rank == 5 then
+		Duciel.warrior:Rend(unit);
+		Duciel.main:SpellCast("Overpower", unit);
+	end
 
 	if rage >= 52 then
 		Duciel.warrior:DemoShout(unit);
