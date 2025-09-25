@@ -15,6 +15,8 @@ end
 
 local combatStartTime;
 local cooldownTracker = {};
+local fireImmuneList = {"Ragnaros", "Baron Geddon", "Firelord"};
+local natureImmuneList = {};
 local debuffTracker = setmetatable({}, {
 	__index = function(t1,k1)
 		t1[k1] = setmetatable({}, {
@@ -26,6 +28,14 @@ local debuffTracker = setmetatable({}, {
 		return t1[k1];
 	end
 });
+
+function Duciel.main:GetNatureImmuneList()
+	return natureImmuneList;
+end
+
+function Duciel.main:GetFireImmuneList()
+	return fireImmuneList;
+end
 
 function Duciel.main:GetCooldownTracker(spell)
 	return cooldownTracker[spell];
@@ -212,7 +222,9 @@ function Duciel.main:SpellCast(spell, unit, rank)
 			cooldownTracker[spell] = GetTime();
 			
 			local _, guid = UnitExists(unit);
-			debuffTracker[spell][guid] = GetTime();
+			if guid ~= nil then
+				debuffTracker[spell][guid] = GetTime();
+			end
 		end
 	end
 end
@@ -317,17 +329,101 @@ function Duciel.main:SplitHyperlink(link)
 	return color, objectType, tonumber(id);
 end
 
+function Duciel.main:JujuFlurry(unit)
+	if unit == nil then
+		unit = "player";
+	end
+	
+	TargetUnit(unit);
+	
+	local juju = 61675; -- Juju Flurry
+	Duciel.main:UseBagItem(juju); 
+	
+	TargetLastTarget();
+end
+
+function Duciel.main:PetSpellIndex(spellName)
+	for i=1,10,1 do 
+		local name = GetPetActionInfo(i);
+		if name == spellName then
+			return i;
+		end
+	end
+	
+	return nil;
+end
+
+function Duciel.main:PetCast(spellName)
+	local index = Duciel.main:PetSpellIndex(spellName);
+	
+	if index ~= nil then
+		if Duciel.main:PetCooldown(spellName) == 0 then
+			CastPetAction(index);
+			if not(Duciel.main:PetCooldown(spellName) == 0) then
+				cooldownTracker[spellName] = GetTime();
+				
+				local _, guid = UnitExists("target");
+				if guid ~= nil then
+					debuffTracker[spellName][guid] = GetTime();
+				end
+			end
+		end
+	end
+end
+
+function Duciel.main:PetCooldown(spellName)
+	local index = Duciel.main:PetSpellIndex(spellName);
+	
+	if index ~= nil then
+		local startTime, duration, enable = GetPetActionCooldown(index);
+		return startTime, duration, enable;
+	end
+	
+	return nil;
+end
+
+function Duciel.main:HerbalTea(minMana)
+	if minMana == nil then
+		minMana = 0;
+	end
+	
+	local unit = "player";
+	local tea = 61675; -- Nordanaar Herbal Tea
+	
+	if UnitInRaid(unit) == 1 then
+		if ((Duciel.main:MissingHealth(unit) > 1000 and Duciel.main:MissingMana(unit) > 1500) or (UnitMana(unit) <= minMana and UnitManaMax(unit) > 200)) then
+			Duciel.main:UseBagItem(tea); 
+		end
+	end
+end
+
 function Duciel.main:CheckHP(unit)
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 
 	return UnitHealth(unit) / UnitHealthMax(unit) * 100;
 end
 
+function Duciel.main:MissingHealth(unit)
+	if unit == nil then
+		unit = "target";
+	end
+	
+	return UnitHealthMax(unit) - UnitHealth(unit);
+end
+
+function Duciel.main:MissingMana(unit)
+	if unit == nil then
+		unit = "target";
+	end
+	
+	return UnitManaMax(unit) - UnitMana(unit);
+end
+
 function Duciel.main:CheckMana(unit)
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 
 	return UnitMana(unit) / UnitManaMax(unit) * 100;
@@ -335,7 +431,7 @@ end
 
 function Duciel.main:IsInRange(unit, range, form)
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 	
 	local distance = UnitXP("distanceBetween", "player", unit, form);
@@ -346,25 +442,33 @@ function Duciel.main:IsInRange(unit, range, form)
 	end
 end
 
-function Duciel.main:ElapsedFightTime()	
+function Duciel.main:IsInCombat()
 	if combatStartTime == nil then
+		return false;
+	else
+		return true;
+	end
+end
+
+function Duciel.main:ElapsedFightTime()	
+	if Duciel.main:IsInCombat() then
+		return GetTime() - combatStartTime;
+	else 
 		return;
 	end
-	
-	return GetTime() - combatStartTime;
 end
 
 function Duciel.main:EstimatedFightTimeLeft(unit)
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 	
-	if combatStartTime == nil then
-		return nil;
+	if Duciel.main:IsInCombat() then
+		local currentUnitLife = Duciel.main:CheckHP(unit);
+		return currentUnitLife * (100 - currentUnitLife / Duciel.main:ElapsedFightTime());
+	else 
+		return;
 	end
-	
-	local currentUnitLife = Duciel.main:CheckHP(unit);
-	return currentUnitLife * (100 - currentUnitLife / Duciel.main:ElapsedFightTime());
 end
 
 Duciel:RegisterEvent("PLAYER_REGEN_DISABLED");

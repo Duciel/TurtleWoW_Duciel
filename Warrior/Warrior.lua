@@ -160,6 +160,19 @@ function Duciel.warrior:Cooldowns(unit)
 					Duciel.main:SpellCast(spellName);
 				end
 			end
+			
+			--local itemDuration = {};
+			--itemDuration[13442] = 20; -- Mighty Rage Potion
+			--itemDuration[61181] = 20; -- Potion of Quickness
+			--for itemID, itmDuration in pairs(itemDuration) do
+			--	if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < itmDuration + 10 then
+			--		Duciel.main:UseBagItem(itemID);
+			--	end
+			--end
+			
+			if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < 20 + 10 then
+				Duciel.main:JujuFlurry();
+			end
 		end
 	end
 end
