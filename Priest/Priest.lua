@@ -46,10 +46,11 @@ function Duciel.priest:ShadowDPS(unit, noVamp)
     if (pfUI.env.UnitChannelInfo("player")) then
         return;
     else
+		Duciel.main:ProcessWaitingList();
+		Duciel.priest:SWPain(unit);
 		if not(noVamp) then
 			Duciel.priest:VampEmbrace(unit);
 		end
-		Duciel.priest:SWPain(unit);
 		Duciel.main:SpellCast("Mind Blast", unit);
         Duciel.main:SpellCast("Mind Flay", unit);
 	end

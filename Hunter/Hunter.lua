@@ -137,8 +137,8 @@ function Duciel.hunter:MongooseBite(unit)
 	end
 end
 
-function Duciel.hunter:Cooldowns(unit)
-if unit == nil then
+function Duciel.hunter:AutoCooldowns(unit)
+	if unit == nil then
 		unit = "target"
 	end
 	
@@ -148,13 +148,17 @@ if unit == nil then
 		
 		-- if in combat for more than 10s
 		if elapsedFightTime ~= nil and elapsedFightTime > 10 then		
-			Duciel.main:SpellCast("Rapid Fire");
-			Duciel.main:SpellCast("Blood Fury");
-			Duciel.main:JujuFlurry();
-			Duciel.main:UseBagItem(61181); -- Potion of Quickness
-			Duciel.main:UseTrinket(true, true);
+			Duciel.hunter:Cooldowns();
 		end
 	end
+end
+
+function Duciel.hunter:Cooldowns()
+	Duciel.main:SpellCast("Rapid Fire");
+	Duciel.main:SpellCast("Blood Fury");
+	Duciel.main:JujuFlurry();
+	Duciel.main:UseBagItem(61181); -- Potion of Quickness
+	Duciel.main:UseTrinket(true, true);
 end
 
 function Duciel.hunter:RoarOfFortitude()
@@ -162,15 +166,11 @@ function Duciel.hunter:RoarOfFortitude()
 	
 	-- Don't roar if player already has the buff or roar has been used in the last 12sec (in case of buff cap)
 	if not(Duciel.main:FindBuff(36535, "player")) and (Duciel.main:GetCooldownTracker(spell) == nil or Duciel.main:GetCooldownTracker(spell) + 12 < GetTime()) then
-		if PetHasActionBar() == 1 then
-			local startTime, duration, enable = Duciel.main:PetCooldown(spell);
-			if duration == 0 then
-				Duciel.main:PetCast(spell);
-			else
-				Duciel.main:SpellCast("Summon Arcane Elemental");
-			end
+		local startTime, duration, enable = Duciel.main:PetCooldown(spell);
+		if duration == 0 and UnitMana("pet") >= 50 then
+			Duciel.main:PetCast(spell);
 		else
-			Duciel.main:SpellCast("Call Pet");
+			Duciel.main:SpellCast("Summon Arcane Elemental");
 		end
 	end
 end
@@ -180,25 +180,25 @@ function Duciel.hunter:FuriousHowl()
 	
 	-- Don't howl if player already has the buff
 	if not(Duciel.main:FindBuff(24597, "player")) then
-		if PetHasActionBar() == 1 then
-			local startTime, duration, enable = Duciel.main:PetCooldown(spell);
-			if duration == 0 then
-				Duciel.main:PetCast(spell);
-			else
-				Duciel.main:SpellCast("Summon Arcane Elemental");
-			end
+		local startTime, duration, enable = Duciel.main:PetCooldown(spell);
+		if duration == 0 and UnitMana("pet") >= 50 then
+			Duciel.main:PetCast(spell);
 		else
-			Duciel.main:SpellCast("Call Pet");
+			Duciel.main:SpellCast("Summon Arcane Elemental");
 		end
 	end
 end
 
 function Duciel.hunter:PetRotation()
-	local petType = GetPetIcon();
-	if petType == "Interface\Ability_Hunter_Pet_Bear" then
-		Duciel.hunter:RoarOfFortitude();
-	elseif petType == "Interface\Ability_Hunter_Pet_Wolf" then
-		Duciel.hunter:FuriousHowl();
+	if PetHasActionBar() == 1 then
+		local petType = GetPetIcon();
+		if petType == "Interface\\Icons\\Ability_Hunter_Pet_Bear" then
+			Duciel.hunter:RoarOfFortitude();
+		elseif petType == "Interface\\Icons\\Ability_Hunter_Pet_Wolf" then
+			Duciel.hunter:FuriousHowl();
+		end
+	else
+		Duciel.main:SpellCast("Call Pet");
 	end
 end
 
@@ -208,8 +208,7 @@ function Duciel.hunter:MeleeDPS(unit)
 	end
 	
 	Duciel.main:HerbalTea(500);
-		
-	Duciel.hunter:Cooldowns(unit);
+	Duciel.hunter:AutoCooldowns(unit);
 	
 	Duciel.hunter:ImmolationTrap(unit);
 	Duciel.main:SpellCast("Lacerate");
@@ -226,6 +225,7 @@ function Duciel.hunter:MeleeAOE(unit)
 	end
 	
 	Duciel.main:HerbalTea(500);
+	Duciel.hunter:AutoCooldowns(unit);
 	
 	Duciel.hunter:ExplosiveTrap(unit);
 	Duciel.hunter:Carve(unit);
@@ -261,8 +261,6 @@ function Duciel.hunter:RangeAOE(unit)
 	end
 	
 	Duciel.main:HerbalTea(500);
-	
-	Duciel.main:HerbalTea()
 	
 	Duciel.hunter:TrueshotAura();
 	

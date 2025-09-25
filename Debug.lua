@@ -62,6 +62,17 @@ function Duciel.debug:listSpellBook()
 	end
 end
 
+function Duciel.debug:showWaitingList()
+	local waitingList = Duciel.main:GetWaitingList();
+	for k, v in pairs(waitingList) do
+		local list = waitingList[k];
+		local obj = list[1];
+		local target = list[2];
+		
+		print(obj, k, target);
+	end
+end
+
 function Duciel.debug:dump(o)
 	if type(o) == 'table' then
 	   local s = '{ ';

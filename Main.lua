@@ -15,6 +15,8 @@ end
 
 local combatStartTime;
 local cooldownTracker = {};
+local waitingList = {};
+local validUnit = {"player", "target", "pet", "focus", "mouseover"};
 local fireImmuneList = {"Ragnaros", "Baron Geddon", "Firelord"};
 local natureImmuneList = {};
 local debuffTracker = setmetatable({}, {
@@ -259,9 +261,28 @@ function Duciel.main:TrinketAndCast(spell, unit, trinket1, trinket2)
 	Duciel.main:SpellCast(spell, unit);
 end
 
-function Duciel.main:UseBagItem(item, self)
+function Duciel.main:UseBagItem(item, unit)
+	if unit ~= nil then
+		local _, guid = UnitExists("target");
+		TargetUnit(unit);
+	end
+	
 	local bag, slot = Duciel.main:FindItem(item);
-	UseContainerItem(bag, slot, self);
+	if bag ~= nil then
+		local start, duration, enabled = GetContainerItemCooldown(bag, slot);
+		if duration == 0 then
+			UseContainerItem(bag, slot);
+			
+			local start, duration, enabled = GetContainerItemCooldown(bag, slot);
+			if not(duration == 0) then
+				cooldownTracker[item] = GetTime();
+			end
+		end
+	end
+	
+	if unit ~= nil then
+		TargetUnit(guid);
+	end
 end
 
 function Duciel.main:IsNotClipping(spell, threshold)
@@ -329,19 +350,6 @@ function Duciel.main:SplitHyperlink(link)
 	return color, objectType, tonumber(id);
 end
 
-function Duciel.main:JujuFlurry(unit)
-	if unit == nil then
-		unit = "player";
-	end
-	
-	TargetUnit(unit);
-	
-	local juju = 61675; -- Juju Flurry
-	Duciel.main:UseBagItem(juju); 
-	
-	TargetLastTarget();
-end
-
 function Duciel.main:PetSpellIndex(spellName)
 	for i=1,10,1 do 
 		local name = GetPetActionInfo(i);
@@ -380,6 +388,17 @@ function Duciel.main:PetCooldown(spellName)
 	end
 	
 	return nil;
+end
+
+function Duciel.main:JujuFlurry(unit)
+	if unit == nil then
+		unit = "player";
+	end
+	
+	if UnitInRaid(unit) == 1 then
+		local juju = 12450; -- Juju Flurry
+		Duciel.main:UseBagItem(juju, unit); 
+	end
 end
 
 function Duciel.main:HerbalTea(minMana)
@@ -471,8 +490,53 @@ function Duciel.main:EstimatedFightTimeLeft(unit)
 	end
 end
 
+function Duciel.main:ProcessWhisper(whisper, sender)
+	local _, _, obj, name = string.find(whisper, "#Duciel# (.*) : (.*)");
+	if obj ~= nil then
+	
+		local _, initialTargetGUID = UnitExists("target");
+		TargetByName(sender, 1);
+		local confirmSender = UnitName("target");
+		if confirmSender == sender then
+			local _, newTargetGUID = UnitExists("target");
+			if initialTargetGUID ~= nil then
+				TargetUnit(initialTargetGUID);
+			else
+				ClearTarget();
+			end
+		
+			waitingList[name] = {obj, newTargetGUID};
+		end
+	end
+end
+
+function Duciel.main:ProcessWaitingList()
+	for k, v in pairs(waitingList) do
+		local list = waitingList[k];
+		local obj = list[1];
+		local target = list[2];
+		
+		if obj == "Spell" then
+			Duciel.main:SpellCast(k, target);
+			if cooldownTracker[k] == GetTime() then
+				waitingList[k] = nil;
+			end
+		elseif obj == "Item" then
+			Duciel.main:UseBagItem(k, target); 
+			if cooldownTracker[k] == GetTime() then
+				waitingList[k] = nil;
+			end
+		end
+	end
+end
+
+function Duciel.main:GetWaitingList()
+	return waitingList;
+end
+
 Duciel:RegisterEvent("PLAYER_REGEN_DISABLED");
 Duciel:RegisterEvent("PLAYER_REGEN_ENABLED");
+Duciel:RegisterEvent("CHAT_MSG_WHISPER");
 
 Duciel:SetScript("OnEvent", function()
 	if event == "PLAYER_REGEN_DISABLED" then
@@ -480,5 +544,10 @@ Duciel:SetScript("OnEvent", function()
 	end
 	if event == "PLAYER_REGEN_ENABLED" then
 		combatStartTime = nil;
+	end
+	if event == "CHAT_MSG_WHISPER" then
+		if (arg1 and arg2) then
+			Duciel.main:ProcessWhisper(arg1, arg2);
+      end
 	end
 end)
