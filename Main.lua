@@ -17,7 +17,7 @@ local combatStartTime;
 local cooldownTracker = {};
 local waitingList = {};
 local validUnit = {"player", "target", "pet", "focus", "mouseover"};
-local fireImmuneList = {"Ragnaros", "Baron Geddon", "Firelord"};
+local fireImmuneList = {"Ragnaros", "Baron Geddon", "Firelord", "Firewalker", "Flameguard", "Lava Spawn"};
 local natureImmuneList = {};
 local debuffTracker = setmetatable({}, {
 	__index = function(t1,k1)
@@ -196,9 +196,13 @@ end
 
 function Duciel.main:GetItemCooldown(item)
 	local bag, slot = Duciel.main:FindItem(item);
-
-	local StartTime, Duration, Enable = GetContainerItemCooldown(bag, slot);
-	return Duration;
+	
+	if bag ~= nil then
+		local StartTime, Duration, Enable = GetContainerItemCooldown(bag, slot);
+		return Duration;
+	else
+		return nil;
+	end
 end
 
 --- Function to get the Cooldown from a spell
@@ -217,15 +221,19 @@ function Duciel.main:SpellCast(spell, unit, rank)
 	if Duciel.main:FindDebuff(28431, "player") then -- Poison Charge
 		Duciel.main:UseBagItem(3386) -- Elixir of Poison Resistance
 	end
-
-	if Duciel.main:GetSpellCooldownByName(spell) == 0 then
-		CastSpellByName(spell, unit);
-		if not(Duciel.main:GetSpellCooldownByName(spell) == 0) then
-			cooldownTracker[spell] = GetTime();
-			
-			local _, guid = UnitExists(unit);
-			if guid ~= nil then
-				debuffTracker[spell][guid] = GetTime();
+	
+	if (pfUI.env.UnitChannelInfo("player")) then
+		return;
+	else
+		if Duciel.main:GetSpellCooldownByName(spell) == 0 then
+			CastSpellByName(spell, unit);
+			if not(Duciel.main:GetSpellCooldownByName(spell) == 0) then
+				cooldownTracker[spell] = GetTime();
+				
+				local _, guid = UnitExists(unit);
+				if guid ~= nil then
+					debuffTracker[spell][guid] = GetTime();
+				end
 			end
 		end
 	end
@@ -261,27 +269,31 @@ function Duciel.main:TrinketAndCast(spell, unit, trinket1, trinket2)
 	Duciel.main:SpellCast(spell, unit);
 end
 
-function Duciel.main:UseBagItem(item, unit)
-	if unit ~= nil then
-		local _, guid = UnitExists("target");
-		TargetUnit(unit);
-	end
-	
+function Duciel.main:UseBagItem(item, unit, name)
 	local bag, slot = Duciel.main:FindItem(item);
 	if bag ~= nil then
 		local start, duration, enabled = GetContainerItemCooldown(bag, slot);
 		if duration == 0 then
+			local guid;
+			if unit ~= nil then
+				_, guid = UnitExists("target");
+				TargetUnit(unit);
+			elseif name ~= nil then
+				_, guid = UnitExists("target");
+				TargetByName(name, 1);
+			end
+	
 			UseContainerItem(bag, slot);
 			
 			local start, duration, enabled = GetContainerItemCooldown(bag, slot);
 			if not(duration == 0) then
 				cooldownTracker[item] = GetTime();
 			end
+
+			if unit ~= nil then
+				TargetUnit(guid);
+			end
 		end
-	end
-	
-	if unit ~= nil then
-		TargetUnit(guid);
 	end
 end
 
@@ -299,6 +311,54 @@ function Duciel.main:IsNotClipping(spell, threshold)
 		return true;
 	else
 		return false;
+	end
+end
+
+function Duciel.main:AutoHealTarget(threshold)
+	if threshold == nil then
+		threshold = 0;
+	end
+	
+	local n, group;
+	if UnitInRaid("player") then 
+		group = "raid";
+		n = 40;
+	else
+		group = "party";
+		n = 4;
+	end
+	
+	local maxHealth, player = 0;
+	for i=1,n,1 do
+		local unit = group..i;
+		local health = Duciel.main:MissingHealth(unit);
+		if health > maxHealth and health > threshold then
+			player = unit;
+		end
+	end
+	
+	return player;
+end
+
+function Duciel.main:FindEquippedItem(item, unit)
+	if unit == nil then
+		unit = "player";
+	end
+	
+	local type = type(item);
+	for equipSlot=0,19,1 do
+		local itemLink = GetInventoryItemLink(unit, equipSlot);
+		if itemLink then
+			local _, _, id = Duciel.main:SplitHyperlink(itemLink);
+			if (type == "number" and item == id) then
+				return equipSlot;
+			else
+				local name = GetItemInfo(id);
+				if (type == "string" and item == name) then
+					return equipSlot;
+				end
+			end
+		end
 	end
 end
 
@@ -411,7 +471,7 @@ function Duciel.main:HerbalTea(minMana)
 	
 	if UnitInRaid(unit) == 1 then
 		if ((Duciel.main:MissingHealth(unit) > 1000 and Duciel.main:MissingMana(unit) > 1500) or (UnitMana(unit) <= minMana and UnitManaMax(unit) > 200)) then
-			Duciel.main:UseBagItem(tea); 
+			Duciel.main:UseBagItem(tea, unit); 
 		end
 	end
 end
@@ -453,11 +513,15 @@ function Duciel.main:IsInRange(unit, range, form)
 		unit = "target";
 	end
 	
-	local distance = UnitXP("distanceBetween", "player", unit, form);
-	if distance > range or distance == nil then
-		return false;
-	else 
-		return true;
+	local _, guid = UnitExists(unit);
+	
+	if guid ~= nil then
+		local distance = UnitXP("distanceBetween", "player", unit, form);
+		if distance > range or distance == nil then
+			return false;
+		else 
+			return true;
+		end
 	end
 end
 
@@ -478,10 +542,6 @@ function Duciel.main:ElapsedFightTime()
 end
 
 function Duciel.main:EstimatedFightTimeLeft(unit)
-	if unit == nil then
-		unit = "target";
-	end
-	
 	if Duciel.main:IsInCombat() then
 		local currentUnitLife = Duciel.main:CheckHP(unit);
 		return currentUnitLife * (100 - currentUnitLife / Duciel.main:ElapsedFightTime());
@@ -530,6 +590,10 @@ function Duciel.main:ProcessWaitingList()
 	end
 end
 
+function Duciel.main:ClearWaitingList()
+	waitingList = {};
+end
+
 function Duciel.main:GetWaitingList()
 	return waitingList;
 end
@@ -544,6 +608,7 @@ Duciel:SetScript("OnEvent", function()
 	end
 	if event == "PLAYER_REGEN_ENABLED" then
 		combatStartTime = nil;
+		Duciel.main:ClearWaitingList();
 	end
 	if event == "CHAT_MSG_WHISPER" then
 		if (arg1 and arg2) then

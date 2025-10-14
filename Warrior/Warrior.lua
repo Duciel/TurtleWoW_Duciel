@@ -23,23 +23,19 @@ function Duciel.warrior:Sunder(unit, noSunder)
 
 		-- Apply sunder until unit has 5 stacks or IEA
 		if not(Duciel.main:FindDebuff(sunderArray, unit, 5) or Duciel.main:FindDebuff(exposeArray, unit)) then
-			Duciel.main:SpellCast(spell);
+			Duciel.main:SpellCast(spell, unit);
 		end
 		
 		local _, guid = UnitExists(unit);
 		
 		-- Make sure sunders do not drop
 		if (Duciel.main:FindDebuff(sunderArray, unit, 5) and Duciel.main:GetDebuffTracker(spell, guid) + 27 < GetTime()) then
-			Duciel.main:SpellCast(spell);
+			Duciel.main:SpellCast(spell, unit);
 		end
 	end
 end
 
-function Duciel.warrior:Whirlwind(unit, noAOE)	
-	if unit == nil then
-		unit = "target"
-	end
-	
+function Duciel.warrior:Whirlwind(unit, noAOE)		
 	if noAOE then
 		return;
 	end
@@ -51,10 +47,6 @@ function Duciel.warrior:Whirlwind(unit, noAOE)
 end
 
 function Duciel.warrior:ThunderClap(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
 	-- If unit is in range
 	if Duciel.main:IsInRange(unit, 8, "AoE") then
 		Duciel.main:SpellCast("Thunder Clap", unit);
@@ -80,10 +72,6 @@ function Duciel.warrior:DemoShout(unit)
 end
 
 function Duciel.warrior:Taunt(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
 	-- Dont taunt if unit is already targetting me
 	if UnitName("targettarget") ~= UnitName("player") then
 		Duciel.main:SpellCast("Taunt", unit);
@@ -105,11 +93,6 @@ function Duciel.warrior:Rend(unit)
 end
 
 function Duciel.warrior:Execute(unit)
-	local spell = "Execute";
-	if unit == nil then
-		unit = "target"
-	end
-	
 	if Duciel.main:CheckHP(unit) <= 20 then
 		Duciel.main:SpellCast("Execute", unit);
 	end
@@ -129,7 +112,7 @@ function Duciel.warrior:ChallengingShout()
 	
 	-- If shout is ready to be used and have enough rage
 	if (Duciel.main:GetSpellCooldownByName("Challenging Shout") == 0 and UnitMana("player") >= 5) then
-		Duciel.main:UseBagItem(lip); 
+		Duciel.main:UseBagItem(lip);
 		-- If lip is on CD
 		if Duciel.main:GetItemCooldown(lip) > 0 then
 			Duciel.main:SpellCast("Challenging Shout");
@@ -244,9 +227,9 @@ function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
 	Duciel.warrior:Sunder(unit, noSunder);
 	Duciel.warrior:Cooldowns(unit);
 	
-	if (UnitClassification("target") == "worldboss" and Duciel.main:CheckHP(unit) <= 35) then
-		Duciel.main:UseTrinket(true, true);
-	end
+	--if (UnitClassification("target") == "worldboss" and Duciel.main:CheckHP(unit) <= 35) then
+	--	Duciel.main:UseTrinket(true, true);
+	--end
 	
 	Duciel.main:SpellCast("Bloodthirst", unit);
 	Duciel.warrior:Execute(unit);
@@ -267,18 +250,12 @@ function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
 		Duciel.main:SpellCast("Sunder Armor", unit);
 	end
 
-	if Duciel.main:IsNotClipping("Bloodthirst") then
-		if rage >= 42 then
-			Duciel.main:SpellCast("Heroic Strike");
-		end
+	if rage >= 42 then
+		Duciel.main:SpellCast("Heroic Strike");
 	end
 end
 
 function Duciel.warrior:FuryAOE(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
 	local rage = UnitMana("player");
 	
 	Duciel.warrior:BattleShout();
@@ -297,10 +274,6 @@ function Duciel.warrior:FuryAOE(unit)
 end
 
 function Duciel.warrior:FuryProtAOE(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
 	local rage = UnitMana("player");
 
 	Duciel.warrior:ThunderClap(unit);
@@ -320,10 +293,6 @@ function Duciel.warrior:FuryProtAOE(unit)
 end
 
 function Duciel.warrior:FuryProt(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
 	local rage = UnitMana("player");
 	
 	Duciel.main:SpellCast("Bloodthirst", unit);
@@ -382,10 +351,6 @@ function Duciel.warrior:DeepProt()
 end
 
 function Duciel.warrior:DeepProtAOE(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
 	local rage = UnitMana("player");
 	local _, _, battleStanceActive = GetShapeshiftFormInfo(1);
 	local _, _, defensiveStanceActive = GetShapeshiftFormInfo(2);
@@ -409,7 +374,4 @@ function Duciel.warrior:DeepProtAOE(unit)
 			Duciel.main:SpellCast("Concussion Blow", unit);
 		end
 	end
-end
-
-function Duciel.warrior:SingleTarget()
 end

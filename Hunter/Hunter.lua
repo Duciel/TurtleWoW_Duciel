@@ -54,14 +54,16 @@ function Duciel.hunter:SerpentSting(unit)
 	
 	local _, guid = UnitExists(unit);
 	
-	local unitName = UnitName(unit);
-	if Duciel.main:Contains(Duciel.main:GetNatureImmuneList(), unitName) then
-		return;
-	end
+	if guid ~= nil then
+		local unitName = UnitName(unit);
+		if Duciel.main:Contains(Duciel.main:GetNatureImmuneList(), unitName) then
+			return;
+		end
 	
-	-- Only refresh serpent sting on a target every 15sec
-	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 15 < GetTime() then
-		Duciel.main:SpellCast(spell);
+		-- Only refresh serpent sting on a target every 15sec
+		if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 15 < GetTime() then
+			Duciel.main:SpellCast(spell, unit);
+		end
 	end
 end
 
@@ -73,8 +75,10 @@ function Duciel.hunter:HunterMark(unit)
 	
 	local _, guid = UnitExists(unit);
 	
-	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 120 < GetTime() then
-		Duciel.main:SpellCast(spell);
+	if guid ~= nil then
+		if not(Duciel.main:FindDebuff(14325, unit)) and (Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 120 < GetTime()) then
+			Duciel.main:SpellCast(spell, unit);
+		end
 	end
 end
 
@@ -115,10 +119,6 @@ function Duciel.hunter:ExplosiveTrap(unit)
 end
 
 function Duciel.hunter:Carve(unit)
-	if unit == nil then
-		unit = "target";
-	end
-	
 	if Duciel.main:IsInRange(unit, 10, "AoE") then
 		Duciel.main:SpellCast("Carve");
 	end
@@ -126,14 +126,9 @@ end
 
 function Duciel.hunter:MongooseBite(unit)
 	local spell = "Mongoose Bite";
-	if unit == nil then
-		unit = "target";
-	end
-	
-	local _, guid = UnitExists(unit);
-	
-	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 6 < GetTime() then
-		Duciel.main:SpellCast(spell);
+
+	if Duciel.main:GetCooldownTracker(spell) == nil or Duciel.main:GetCooldownTracker(spell) + 6 < GetTime() then
+		Duciel.main:SpellCast(spell, unit);
 	end
 end
 
@@ -154,11 +149,11 @@ function Duciel.hunter:AutoCooldowns(unit)
 end
 
 function Duciel.hunter:Cooldowns()
+	Duciel.main:JujuFlurry("player"); -- Rapid fire gives juju 5min cooldown so you want to use juju first
+	Duciel.main:UseTrinket(true, true);
 	Duciel.main:SpellCast("Rapid Fire");
 	Duciel.main:SpellCast("Blood Fury");
-	Duciel.main:JujuFlurry();
 	Duciel.main:UseBagItem(61181); -- Potion of Quickness
-	Duciel.main:UseTrinket(true, true);
 end
 
 function Duciel.hunter:RoarOfFortitude()
@@ -203,73 +198,61 @@ function Duciel.hunter:PetRotation()
 end
 
 function Duciel.hunter:MeleeDPS(unit)
-	if unit == nil then
-		unit = "target";
-	end
-	
 	Duciel.main:HerbalTea(500);
 	Duciel.hunter:AutoCooldowns(unit);
 	
 	Duciel.hunter:ImmolationTrap(unit);
-	Duciel.main:SpellCast("Lacerate");
+	Duciel.main:SpellCast("Lacerate", unit);
 	Duciel.hunter:PetRotation();
 	Duciel.hunter:MongooseBite(unit);
 	Duciel.hunter:Carve(unit);
-	Duciel.main:SpellCast("Wing Clip");
-	Duciel.main:SpellCast("Raptor Strike");
+	Duciel.main:SpellCast("Wing Clip", unit);
+	Duciel.main:SpellCast("Raptor Strike", unit);
 end
 
 function Duciel.hunter:MeleeAOE(unit)
-	if unit == nil then
-		unit = "target";
-	end
-	
 	Duciel.main:HerbalTea(500);
 	Duciel.hunter:AutoCooldowns(unit);
 	
 	Duciel.hunter:ExplosiveTrap(unit);
 	Duciel.hunter:Carve(unit);
 	Duciel.hunter:PetRotation();
-	Duciel.main:SpellCast("Lacerate");
+	Duciel.main:SpellCast("Lacerate", unit);
 	Duciel.hunter:MongooseBite(unit);
-	Duciel.main:SpellCast("Wing Clip");
-	Duciel.main:SpellCast("Raptor Strike");
+	Duciel.main:SpellCast("Wing Clip", unit);
+	Duciel.main:SpellCast("Raptor Strike", unit);
 end
 
 function Duciel.hunter:RangeDPS(unit)
-	if unit == nil then
-		unit = "target";
-	end
-	
 	Duciel.main:HerbalTea(500);
+	Duciel.hunter:AutoCooldowns(unit);
 	
 	Duciel.hunter:TrueshotAura();
 	
 	if Duciel.main:IsInCombat() == false then
 		Duciel.hunter:HunterMark(unit);
-		Duciel.main:SpellCast("Aimed Shot");
+		--Duciel.main:SpellCast("Aimed Shot");
 	end
 	ST_SafeShot("steady");
 	Duciel.hunter:SerpentSting(unit);
 	ST_SafeShot("multi");
-	Duciel.hunter:PetRotation();
+	Duciel.hunter:HunterMark(unit);
+	--Duciel.hunter:PetRotation();
 end
 
 function Duciel.hunter:RangeAOE(unit)
-	if unit == nil then
-		unit = "target";
-	end
-	
 	Duciel.main:HerbalTea(500);
+	Duciel.hunter:AutoCooldowns(unit);
 	
 	Duciel.hunter:TrueshotAura();
 	
 	if Duciel.main:IsInCombat() == false then
 		Duciel.hunter:HunterMark(unit);
-		Duciel.main:SpellCast("Aimed Shot");
+		--Duciel.main:SpellCast("Aimed Shot");
 	end
 	ST_SafeShot("multi");
 	ST_SafeShot("steady");
 	Duciel.hunter:PetRotation();
+	Duciel.hunter:HunterMark(unit);
 	Duciel.hunter:SerpentSting(unit);
 end
