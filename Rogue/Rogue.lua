@@ -4,7 +4,11 @@ Duciel.rogue = {};
 setmetatable(Duciel.rogue, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
-local targetNotPickPocket = {};
+local targetNotPickPocket = {"toto"};
+
+function Duciel.rogue:GetTargetNotPickPocket()
+	return targetNotPickPocket;
+end
 
 function Duciel.rogue:IsStealthed()
 	local stealthArray = {1787, 1786, 1785, 1784};
@@ -57,19 +61,21 @@ end
 
 function Duciel.rogue:SliceAndDice(unit)
 	local combo = GetComboPoints();
+	local sliceAndDiceArray = {6774, 5171};
 	
-	if not(Duciel.main:FindBuff(6774, "player")) and combo > 0 then
+	if not(Duciel.main:FindBuff(sliceAndDiceArray, "player")) and combo > 0 then
 		Duciel.main:SpellCast("Slice and Dice", unit);
 	end
 end
 
 function Duciel.rogue:Zamatarr(unit)
 	Duciel.rogue:Stealth();
-	Duciel.rogue:PickPocket(unit);
+	--Duciel.rogue:PickPocket(unit);
 	Duciel.rogue:CheapShot(unit);
 	if not(Duciel.rogue:IsStealthed()) then
 		Duciel.rogue:Envenom(unit);
 		Duciel.rogue:SliceAndDice(unit);
 		Duciel.main:SpellCast("Noxious Assault", unit);
+		--Duciel.main:SpellCast("Sinister Strike", unit);
 	end
 end
