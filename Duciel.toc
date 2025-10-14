@@ -1,7 +1,7 @@
 ## Interface: 11200
 ## Title: Duciel
-## Version: 0.0.4
-## Notes: Test
+## Version: 0.0.5
+## Notes: Personnal addon use with caution
 ## Author: Duciel
 
 Main.lua

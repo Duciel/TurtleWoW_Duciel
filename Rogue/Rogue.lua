@@ -84,7 +84,7 @@ function Duciel.rogue:Zamatarr(unit)
 	if not(Duciel.rogue:IsStealthed()) then
 		Duciel.rogue:Envenom(unit);
 		Duciel.rogue:SliceAndDice(unit);
-		--Duciel.main:SpellCast("Noxious Assault", unit);
-		Duciel.main:SpellCast("Sinister Strike", unit);
+		Duciel.main:SpellCast("Noxious Assault", unit);
+		--Duciel.main:SpellCast("Sinister Strike", unit);
 	end
 end
