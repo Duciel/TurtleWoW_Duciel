@@ -4,7 +4,7 @@ Duciel.rogue = {};
 setmetatable(Duciel.rogue, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
-local targetNotPickPocket = {"toto"};
+local targetNotPickPocket = {};
 
 function Duciel.rogue:GetTargetNotPickPocket()
 	return targetNotPickPocket;
@@ -78,8 +78,12 @@ function Duciel.rogue:Zamatarr(unit)
 	
 	Duciel.rogue:Stealth();
 	Duciel.rogue:PickPocket(unit);
-	if targetNotPickPocket[guid] + 300 >= GetTime() then
-		Duciel.rogue:CheapShot(unit);
+	if guid ~= nil then
+		if targetNotPickPocket[guid] == nil then
+			Duciel.rogue:CheapShot(unit);
+		elseif targetNotPickPocket[guid] + 300 >= GetTime() then
+			Duciel.rogue:CheapShot(unit);
+		end
 	end
 	if not(Duciel.rogue:IsStealthed()) then
 		Duciel.rogue:Envenom(unit);
