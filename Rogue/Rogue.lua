@@ -34,19 +34,20 @@ function Duciel.rogue:PickPocket(unit)
 	local spell = "Pick Pocket";
 	local _, guid = UnitExists(unit);
 	
-	if guid ~= nil and not(Duciel.main:Contains(targetNotPickPocket, guid)) then
-		if Duciel.rogue:IsStealthed() and (Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 300 < GetTime()) then
-			if Duciel.main:IsInRange(unit, 5) then
-				Duciel.main:SpellCast(spell, unit);
-			else
-				table.insert(targetNotPickPocket, guid);
-			end
+	if guid ~= nil then
+		if Duciel.rogue:IsStealthed() and Duciel.main:IsInRange(unit, 0, "meleeAutoAttack") and (targetNotPickPocket[guid] == nil or targetNotPickPocket[guid] + 300 < GetTime()) then
+			Duciel.main:SpellCast(spell, unit);
+			targetNotPickPocket[guid] = GetTime();
 		end
 	end
 end
 
 function Duciel.rogue:CheapShot(unit)
-	if Duciel.rogue:IsStealthed() then
+	if unit == nil then
+		unit = "target";
+	end
+	
+	if (Duciel.rogue:IsStealthed() and Duciel.main:IsInRange(unit, 0, "meleeAutoAttack")) then
 		Duciel.main:SpellCast("Cheap Shot", unit);
 	end
 end
@@ -70,7 +71,7 @@ end
 
 function Duciel.rogue:Zamatarr(unit)
 	Duciel.rogue:Stealth();
-	--Duciel.rogue:PickPocket(unit);
+	Duciel.rogue:PickPocket(unit);
 	Duciel.rogue:CheapShot(unit);
 	if not(Duciel.rogue:IsStealthed()) then
 		Duciel.rogue:Envenom(unit);
