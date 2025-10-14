@@ -4,6 +4,8 @@ Duciel.rogue = {};
 setmetatable(Duciel.rogue, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
+local targetNotPickPocket = {};
+
 function Duciel.rogue:IsStealthed()
 	local stealthArray = {1787, 1786, 1785, 1784};
 	
@@ -22,15 +24,20 @@ end
 
 function Duciel.rogue:PickPocket(unit)
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 	
 	local spell = "Pick Pocket";
-	
 	local _, guid = UnitExists(unit);
 	
-	if Duciel.rogue:IsStealthed() and (Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 300 < GetTime()) then
-		Duciel.main:SpellCast(spell, unit);
+	if guid ~= nil and not(Duciel.main:Contains(targetNotPickPocket, guid)) then
+		if Duciel.rogue:IsStealthed() and (Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 300 < GetTime()) then
+			if Duciel.main:IsInRange(unit, 5) then
+				Duciel.main:SpellCast(spell, unit);
+			else
+				table.insert(targetNotPickPocket, guid);
+			end
+		end
 	end
 end
 
