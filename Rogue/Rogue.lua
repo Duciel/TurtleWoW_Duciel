@@ -35,7 +35,7 @@ function Duciel.rogue:PickPocket(unit)
 	local _, guid = UnitExists(unit);
 	
 	if guid ~= nil then
-		if Duciel.rogue:IsStealthed() and Duciel.main:IsInRange(unit, 0, "meleeAutoAttack") and (targetNotPickPocket[guid] == nil or targetNotPickPocket[guid] + 300 < GetTime()) then
+		if Duciel.rogue:IsStealthed() and Duciel.main:IsInRange(unit, 2) and (targetNotPickPocket[guid] == nil or targetNotPickPocket[guid] + 300 < GetTime()) then
 			Duciel.main:SpellCast(spell, unit);
 			targetNotPickPocket[guid] = GetTime();
 		end
@@ -47,7 +47,7 @@ function Duciel.rogue:CheapShot(unit)
 		unit = "target";
 	end
 	
-	if (Duciel.rogue:IsStealthed() and Duciel.main:IsInRange(unit, 0, "meleeAutoAttack")) then
+	if Duciel.rogue:IsStealthed() then
 		Duciel.main:SpellCast("Cheap Shot", unit);
 	end
 end
@@ -70,13 +70,21 @@ function Duciel.rogue:SliceAndDice(unit)
 end
 
 function Duciel.rogue:Zamatarr(unit)
+	if unit == nil then
+		unit = "target";
+	end
+	
+	local _, guid = UnitExists(unit);
+	
 	Duciel.rogue:Stealth();
 	Duciel.rogue:PickPocket(unit);
-	Duciel.rogue:CheapShot(unit);
+	if targetNotPickPocket[guid] + 300 >= GetTime() then
+		Duciel.rogue:CheapShot(unit);
+	end
 	if not(Duciel.rogue:IsStealthed()) then
 		Duciel.rogue:Envenom(unit);
 		Duciel.rogue:SliceAndDice(unit);
-		Duciel.main:SpellCast("Noxious Assault", unit);
-		--Duciel.main:SpellCast("Sinister Strike", unit);
+		--Duciel.main:SpellCast("Noxious Assault", unit);
+		Duciel.main:SpellCast("Sinister Strike", unit);
 	end
 end
