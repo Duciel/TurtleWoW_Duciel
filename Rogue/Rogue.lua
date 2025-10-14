@@ -21,6 +21,10 @@ function Duciel.rogue:Stealth()
 end
 
 function Duciel.rogue:PickPocket(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
 	local spell = "Pick Pocket";
 	
 	local _, guid = UnitExists(unit);
