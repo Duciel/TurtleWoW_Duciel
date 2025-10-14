@@ -10,4 +10,5 @@ Command.lua
 Hunter\Hunter.lua
 Mage\Mage.lua
 Priest\Priest.lua
+Rogue\Rogue.lua
 Warrior\Warrior.lua

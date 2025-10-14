@@ -5,7 +5,9 @@ setmetatable(Duciel.rogue, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
 function Duciel.rogue:IsStealthed()
-	if Duciel.main:FindBuff(1787, "player") then
+	local stealthArray = {1787, 1786, 1785, 1784};
+	
+	if Duciel.main:FindBuff(stealthArray, "player") then
 		return true;
 	else
 		return false;
@@ -13,7 +15,7 @@ function Duciel.rogue:IsStealthed()
 end
 
 function Duciel.rogue:Stealth()
-	if not(Duciel.main:IsInCombat()) then
+	if not(Duciel.main:IsInCombat()) and not(Duciel.rogue:IsStealthed()) then
 		Duciel.main:SpellCast("Stealth");
 	end
 end
