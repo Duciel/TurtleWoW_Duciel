@@ -4,10 +4,17 @@ Duciel.warrior = {};
 setmetatable(Duciel.warrior, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
+local sunderIgnoreList = {""};
+
 function Duciel.warrior:Sunder(unit, noSunder)
 	local spell = "Sunder Armor";
 	if unit == nil then
 		unit = "target"
+	end
+	
+	local unitName = UnitName(unit);
+	if Duciel.main:Contains(sunderIgnoreList, unitName) then
+		return;
 	end
 	
 	if noSunder then
@@ -120,46 +127,6 @@ function Duciel.warrior:ChallengingShout()
 	end
 end
 
-function Duciel.warrior:Cooldowns(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
-	-- if unit is a worldboss
-	if UnitClassification(unit) == "worldboss" then		
-		local elapsedFightTime = Duciel.main:ElapsedFightTime();
-		
-		-- if in combat for more than 10s
-		if elapsedFightTime ~= nil and elapsedFightTime > 10 then
-			local estimatedFightTimeLeft = Duciel.main:EstimatedFightTimeLeft(unit);
-		
-			local cooldownDuration = {};
-			cooldownDuration["Death Wish"] = 30;
-			cooldownDuration["Blood Fury"] = 15;
-			cooldownDuration["Bloodrage"] = 8;
-				
-			for spellName, spellDuration in pairs(cooldownDuration) do
-				if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < spellDuration + 10 then
-					Duciel.main:SpellCast(spellName);
-				end
-			end
-			
-			--local itemDuration = {};
-			--itemDuration[13442] = 20; -- Mighty Rage Potion
-			--itemDuration[61181] = 20; -- Potion of Quickness
-			--for itemID, itmDuration in pairs(itemDuration) do
-			--	if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < itmDuration + 10 then
-			--		Duciel.main:UseBagItem(itemID);
-			--	end
-			--end
-			
-			if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < 20 + 10 then
-				Duciel.main:JujuFlurry();
-			end
-		end
-	end
-end
-
 function Duciel.warrior:Consumes(spec)
 	-- Elixir of the Mongoose
 	if not(Duciel.main:FindBuff(17538, "player")) then
@@ -211,6 +178,188 @@ function Duciel.warrior:Consumes(spec)
 	end
 end
 
+function Duciel.warrior:Slam(speed, delta, ignoreClip)
+	if delta == nil then
+		delta = 0;
+	end
+	local spell = "Slam";
+	
+	if ignoreClip == 1 then
+		Duciel.main:SpellCast(spell, unit);
+	else
+		local currentSpeed = UnitAttackSpeed("player");
+		local haste = speed / currentSpeed;
+		
+		local baseSlam = 2.5;
+		local currentSlam = 2.5 / haste;
+		
+		if currentSlam > 1.5 then
+			currentSlam = 1.5;
+		end
+		
+		if st_timer + delta > currentSlam then
+			Duciel.main:SpellCast(spell, unit);
+		end
+	end
+end
+
+function Duciel.warrior:Bloodthirst(unit)
+	local _, _, _, _, rank = GetTalentInfo(2, 17); -- Bloodthirst
+	if rank == 1 then
+		Duciel.main:SpellCast("Bloodthirst", unit);
+	end
+end
+
+function Duciel.warrior:SweepingStrikes()
+	local _, _, _, _, rank = GetTalentInfo(1, 13); -- Sweeping Strikes
+	if rank == 1 then
+		Duciel.main:SpellCast("Sweeping Strikes");
+	end
+end
+
+function Duciel.warrior:CheckSpec()
+	local _, _, _, _, rank = GetTalentInfo(1, 10);
+	
+	if rank > 0 then
+		return "Arms";
+	end
+end
+
+function Duciel.warrior:AutoCooldowns(unit)
+	if unit == nil then
+		unit = "target"
+	end
+	
+	-- if unit is a worldboss
+	if UnitClassification(unit) == "worldboss" then		
+		local elapsedFightTime = Duciel.main:ElapsedFightTime();
+		
+		-- if in combat for more than 10s
+		if elapsedFightTime ~= nil and elapsedFightTime > 10 then
+			local estimatedFightTimeLeft = Duciel.main:EstimatedFightTimeLeft(unit);
+		
+			local cooldownDuration = {};
+			cooldownDuration["Death Wish"] = 30;
+			cooldownDuration["Blood Fury"] = 15;
+			cooldownDuration["Bloodrage"] = 8;
+				
+			for spellName, spellDuration in pairs(cooldownDuration) do
+				if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < spellDuration + 10 then
+					Duciel.main:SpellCast(spellName);
+				end
+			end
+			
+			--local itemDuration = {};
+			--itemDuration[13442] = 20; -- Mighty Rage Potion
+			--itemDuration[61181] = 20; -- Potion of Quickness
+			--for itemID, itmDuration in pairs(itemDuration) do
+			--	if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < itmDuration + 10 then
+			--		Duciel.main:UseBagItem(itemID);
+			--	end
+			--end
+			
+			if estimatedFightTimeLeft ~= nil and estimatedFightTimeLeft < 20 + 10 then
+				Duciel.main:JujuFlurry();
+			end
+		end
+	end
+end
+
+function Duciel.warrior:Cooldowns()
+	Duciel.main:JujuFlurry("player");
+	Duciel.main:UseTrinket(true, true);
+	Duciel.main:SpellCast("Blood Fury");
+	Duciel.main:SpellCast("Bloodrage");
+	Duciel.main:UseBagItem(61181); -- Potion of Quickness
+	
+    local _, _, _, _, rank = GetTalentInfo(2, 12);
+	if rank > 0 then
+		Duciel.main:SpellCast("Death Wish");
+	end
+end
+
+function Duciel.warrior:Dps(speed, unit, noAOE, noSunder)
+	local spec = Duciel.warrior:CheckSpec();
+	
+	if spec == "Fury" then
+		Duciel.warrior:FuryDPS(unit, noAOE, noSunder);
+	else 
+		Duciel.warrior:Arms(speed, unit, noAOE, noSunder);
+	end
+end
+
+function Duciel.warrior:DpsAOE(speed, unit, noSunder)
+	local spec = Duciel.warrior:CheckSpec();
+	
+	if spec == "Fury" then
+		Duciel.warrior:FuryAOE(unit);
+	else 
+		Duciel.warrior:ArmsAOE(speed, unit, noSunder);
+	end
+end
+
+function Duciel.warrior:Arms(speed, unit, noAOE, noSunder)
+	if unit == nil then
+		unit = "target";
+	end
+	
+	local rage = UnitMana("player");
+	
+	local _, _, isZerkActive = GetShapeshiftFormInfo(3)
+	if isZerkActive == nil then
+		CastShapeshiftForm(3);
+	end
+	
+	Duciel.warrior:BattleShout();
+	Duciel.warrior:Sunder(unit, noSunder);
+	
+	if rage >= 82 then
+		Duciel.main:SpellCast("Heroic Strike");
+	end
+	
+	--Duciel.warrior:Slam(speed);
+	--Duciel.warrior:Execute(unit);
+	--if rage >= 40 then 
+	--	Duciel.warrior:Bloodthirst(unit);
+	--	Duciel.warrior:Whirlwind(unit, noAOE);
+	--end
+	
+	Duciel.warrior:Slam(speed, 0.5);
+	Duciel.warrior:Bloodthirst(unit);
+	Duciel.warrior:Whirlwind(unit, noAOE);
+	Duciel.warrior:Execute(unit);
+end
+
+function Duciel.warrior:ArmsAOE(speed, unit, noSunder)
+	if unit == nil then
+		unit = "target";
+	end
+	
+	local rage = UnitMana("player");
+	
+	local _, _, isZerkActive = GetShapeshiftFormInfo(3)
+	if isZerkActive == nil then
+		CastShapeshiftForm(3);
+	end
+	
+	Duciel.warrior:BattleShout();
+	Duciel.warrior:Sunder(unit, noSunder);
+	
+	--Duciel.warrior:SweepingStrikes();
+	Duciel.warrior:Whirlwind(unit);
+	Duciel.warrior:Execute(unit);
+	
+	if rage >= 55 then 
+		Duciel.warrior:Bloodthirst(unit);
+	end
+	
+	Duciel.warrior:Slam(speed);
+	
+	if rage >= 70 then
+		Duciel.main:SpellCast("Cleave");
+	end
+end
+
 function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
 	if unit == nil then
 		unit = "target";
@@ -225,28 +374,27 @@ function Duciel.warrior:FuryDPS(unit, noAOE, noSunder)
 	
 	Duciel.warrior:BattleShout();
 	Duciel.warrior:Sunder(unit, noSunder);
-	Duciel.warrior:Cooldowns(unit);
 	
 	--if (UnitClassification("target") == "worldboss" and Duciel.main:CheckHP(unit) <= 35) then
 	--	Duciel.main:UseTrinket(true, true);
 	--end
 	
-	Duciel.main:SpellCast("Bloodthirst", unit);
+	Duciel.warrior:Bloodthirst(unit);
 	Duciel.warrior:Execute(unit);
 	Duciel.warrior:Whirlwind(unit, noAOE);
 		
-	local name, icon, col, line, rank, maxRank = GetTalentInfo(1, 2);
-	if rank == 5 then
-		Duciel.warrior:Rend(unit);
-		Duciel.main:SpellCast("Overpower", unit);
-	end
+	--local _, _, _, _, rank = GetTalentInfo(1, 2);
+	--if rank == 5 then
+	--	Duciel.warrior:Rend(unit);
+	--	Duciel.main:SpellCast("Overpower", unit);
+	--end
 
 	if rage >= 52 then
 		Duciel.warrior:DemoShout(unit);
-		Duciel.main:SpellCast("Hamstring", unit);
 		if UnitName(unit) ~= "Echo of Medivh" then
 			Duciel.main:SpellCast("Pummel", unit);
 		end
+		Duciel.main:SpellCast("Hamstring", unit);
 		Duciel.main:SpellCast("Sunder Armor", unit);
 	end
 
@@ -261,7 +409,7 @@ function Duciel.warrior:FuryAOE(unit)
 	Duciel.warrior:BattleShout();
 	Duciel.warrior:Whirlwind(unit);
 	Duciel.warrior:Execute(unit);
-	Duciel.main:SpellCast("Bloodthirst", unit);
+	Duciel.warrior:Bloodthirst(unit);
 
 	if Duciel.main:IsNotClipping("Whirlwind") and rage >= 55 then
 		Duciel.warrior:DemoShout(unit);
@@ -286,7 +434,7 @@ function Duciel.warrior:FuryProtAOE(unit)
 			Duciel.warrior:DemoShout(unit);
 			Duciel.warrior:Sunder(unit);
 			if rage >= 75 then
-				Duciel.main:SpellCast("Bloodthirst", unit);
+				Duciel.warrior:Bloodthirst(unit);
 			end
 		end
 	end
@@ -295,8 +443,9 @@ end
 function Duciel.warrior:FuryProt(unit)
 	local rage = UnitMana("player");
 	
-	Duciel.main:SpellCast("Bloodthirst", unit);
+	Duciel.warrior:Bloodthirst(unit);
 	Duciel.main:SpellCast("Revenge", unit);
+	Duciel.warrior:Rend(unit);
 
 	if Duciel.main:IsNotClipping("Bloodthirst") and rage >= 42 then
 		Duciel.main:SpellCast("Heroic Strike", unit);
@@ -311,7 +460,7 @@ end
 
 function Duciel.warrior:DeepProt()
 	if unit == nil then
-		unit = "target"
+		unit = "target";
 	end
 	
 	local rage = UnitMana("player");
@@ -352,15 +501,9 @@ end
 
 function Duciel.warrior:DeepProtAOE(unit)
 	local rage = UnitMana("player");
-	local _, _, battleStanceActive = GetShapeshiftFormInfo(1);
-	local _, _, defensiveStanceActive = GetShapeshiftFormInfo(2);
-	local _, _, berserkerStanceActive = GetShapeshiftFormInfo(3);
 	
-	if battleStanceActive == 1 or defensiveStanceActive == 1 then
-		Duciel.warrior:ThunderClap(unit);
-	else 
-		Duciel.warrior:Whirlwind(unit);
-	end
+	Duciel.warrior:Whirlwind(unit);
+	Duciel.warrior:ThunderClap(unit);
 
 	if rage >= 30 then
 		Duciel.warrior:BattleShout();

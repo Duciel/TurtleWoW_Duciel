@@ -150,7 +150,7 @@ end
 
 function Duciel.hunter:Cooldowns()
 	Duciel.main:JujuFlurry("player"); -- Rapid fire gives juju 5min cooldown so you want to use juju first
-	Duciel.main:UseTrinket(true, true);
+	--Duciel.main:UseTrinket(true, true);
 	Duciel.main:SpellCast("Rapid Fire");
 	Duciel.main:SpellCast("Blood Fury");
 	Duciel.main:UseBagItem(61181); -- Potion of Quickness
@@ -203,7 +203,7 @@ function Duciel.hunter:MeleeDPS(unit)
 	
 	Duciel.hunter:ImmolationTrap(unit);
 	Duciel.main:SpellCast("Lacerate", unit);
-	Duciel.hunter:PetRotation();
+	--Duciel.hunter:PetRotation();
 	Duciel.hunter:MongooseBite(unit);
 	Duciel.hunter:Carve(unit);
 	Duciel.main:SpellCast("Wing Clip", unit);
@@ -216,7 +216,7 @@ function Duciel.hunter:MeleeAOE(unit)
 	
 	Duciel.hunter:ExplosiveTrap(unit);
 	Duciel.hunter:Carve(unit);
-	Duciel.hunter:PetRotation();
+	--Duciel.hunter:PetRotation();
 	Duciel.main:SpellCast("Lacerate", unit);
 	Duciel.hunter:MongooseBite(unit);
 	Duciel.main:SpellCast("Wing Clip", unit);
@@ -252,7 +252,7 @@ function Duciel.hunter:RangeAOE(unit)
 	end
 	ST_SafeShot("multi");
 	ST_SafeShot("steady");
-	Duciel.hunter:PetRotation();
+	--Duciel.hunter:PetRotation();
 	Duciel.hunter:HunterMark(unit);
 	Duciel.hunter:SerpentSting(unit);
 end

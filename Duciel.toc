@@ -1,6 +1,6 @@
 ## Interface: 11200
 ## Title: Duciel
-## Version: 0.0.6
+## Version: 0.0.7
 ## Notes: Personnal addon use with caution
 ## Author: Duciel
 
@@ -12,3 +12,4 @@ Mage\Mage.lua
 Priest\Priest.lua
 Rogue\Rogue.lua
 Warrior\Warrior.lua
+Warlock\Warlock.lua

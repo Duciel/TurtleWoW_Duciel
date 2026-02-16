@@ -44,7 +44,11 @@ function Duciel.main:GetCooldownTracker(spell)
 end
 
 function Duciel.main:GetDebuffTracker(spell, guid)
-	return debuffTracker[spell][guid];
+	if (guid == nil or spell == nil) then
+		return nil;
+	else
+		return debuffTracker[spell][guid];
+	end
 end
 
 --- Function to check if a debuff is present on the unit
@@ -83,10 +87,11 @@ function Duciel.main:FindDebuff(debuff, unit, debuffStack)
 		end
 
 		i = i + 1;
-		icon, stack, debuffType, id = UnitDebuff("target", i);
-
-		if (icon == nil) then
-			icon, stack, id = UnitBuff("target", i);
+		
+		if (i <= 16) then
+			icon, stack, debuffType, id = UnitDebuff("target", i);
+		else
+			icon, stack, id = UnitBuff("target", i-16);
 		end
 	end
 	
@@ -147,6 +152,10 @@ function Duciel.main:Contains(tab, val)
 	end
 
 	return false;
+end
+
+function Duciel.main:GetHaste()
+	return GetUnitField("player", "modCastSpeed");
 end
 
 --- Function to get the ID of a spell
@@ -227,14 +236,21 @@ function Duciel.main:SpellCast(spell, unit, rank)
 	else
 		if Duciel.main:GetSpellCooldownByName(spell) == 0 then
 			CastSpellByName(spell, unit);
-			if not(Duciel.main:GetSpellCooldownByName(spell) == 0) then
-				cooldownTracker[spell] = GetTime();
-				
-				local _, guid = UnitExists(unit);
-				if guid ~= nil then
-					debuffTracker[spell][guid] = GetTime();
-				end
-			end
+			Duciel.main:TrackSpellCast(spell, unit);
+		end
+	end
+end
+
+function Duciel.main:TrackSpellCast(spell, unit)
+	if unit == nil then
+		unit = "target";
+	end
+	
+	if not(Duciel.main:GetSpellCooldownByName(spell) == 0) then
+		cooldownTracker[spell] = GetTime();
+		local _, guid = UnitExists(unit);
+		if guid ~= nil then
+			debuffTracker[spell][guid] = GetTime();
 		end
 	end
 end
@@ -314,9 +330,9 @@ function Duciel.main:IsNotClipping(spell, threshold)
 	end
 end
 
-function Duciel.main:AutoHealTarget(threshold)
+function Duciel.main:AutoHealTarget(threshold, ignoreHotID, spell)
 	if threshold == nil then
-		threshold = 0;
+		threshold = -1;
 	end
 	
 	local n, group;
@@ -328,12 +344,20 @@ function Duciel.main:AutoHealTarget(threshold)
 		n = 4;
 	end
 	
-	local maxHealth, player = 0;
+	local maxHealth, player = -1;
 	for i=1,n,1 do
 		local unit = group..i;
-		local health = Duciel.main:MissingHealth(unit);
-		if health > maxHealth and health > threshold then
-			player = unit;
+		local _, guid = UnitExists(unit);
+		if guid ~= nil then
+			if (ignoreHotID == nil or Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + 15 < GetTime() or not(Duciel.main:FindBuff(ignoreHotID, unit))) then
+				if Duciel.main:IsInRange(unit, 40) then
+					local health = Duciel.main:MissingHealth(unit);
+					if health > maxHealth and health > threshold then
+						maxHealth = health;
+						player = unit;
+					end
+				end
+			end
 		end
 	end
 	
@@ -517,7 +541,7 @@ function Duciel.main:IsInRange(unit, range, form)
 	
 	if guid ~= nil then
 		local distance = UnitXP("distanceBetween", "player", unit, form);
-		if distance > range or distance == nil then
+		if distance == nil or distance > range then
 			return false;
 		else 
 			return true;

@@ -4,44 +4,7 @@ Duciel.priest = {};
 setmetatable(Duciel.priest, {__index = getfenv(0)});
 setfenv(1, getfenv(0));
 
-function Duciel.priest:SWPain(unit)
-	if unit == nil then
-		unit = "target"
-	end
-	
-    local spell = "Shadow Word: Pain";
-	
-    local name, icon, col, line, rank, maxRank = GetTalentInfo(3, 4); -- Improved Shadow Word: Pain
-    local swpDuration = 18 + (rank * 3);
-	
-	-- Eye of Dormant Corruption
-	if Duciel.main:FindEquippedItem(55111) ~= nil then
-		swpDuration = swpDuration + 3;
-	end
-	
-	local _, guid = UnitExists(unit);
-	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + swpDuration < GetTime() then
-        Duciel.main:SpellCast(spell, unit);
-	end
-end
-
-function Duciel.priest:VampEmbrace(unit)
-	if unit == nil then
-		unit = "target"
-	end
-
-    local spell = "Vampiric Embrace";
-	
-	local vampDuration = 60;
-    if UnitName(unit) == "Loatheb" then
-        vampDuration = 30;
-    end
-	
-	local _, guid = UnitExists(unit);
-	if Duciel.main:GetDebuffTracker(spell, guid) == nil or Duciel.main:GetDebuffTracker(spell, guid) + vampDuration < GetTime() then
-        Duciel.main:SpellCast(spell, unit);
-    end
-end
+local renewList = {25315, 10929, 10928, 10927, 6078, 6077}; -- Renew from rank 10 to 5
 
 function Duciel.priest:InnerFire()
 	if not(Duciel.main:FindBuff(10952, "player")) then
@@ -50,8 +13,11 @@ function Duciel.priest:InnerFire()
 end
 
 function Duciel.priest:Shadowform()
-	if not(Duciel.main:FindBuff(15473, "player")) then
-		Duciel.main:SpellCast("Shadowform");
+    local name, icon, col, line, rank, maxRank = GetTalentInfo(3, 17);
+	if rank == 1 then
+		if not(Duciel.main:FindBuff(15473, "player")) then
+			Duciel.main:SpellCast("Shadowform");
+		end
 	end
 end
 
@@ -64,18 +30,43 @@ function Duciel.priest:MindBlast(unit)
 	Duciel.main:SpellCast(spell, unit);
 end
 
-function Duciel.priest:ShadowDPS(unit, noVamp)
+function Duciel.priest:MindFlay(unit)
+    local name, icon, col, line, rank, maxRank = GetTalentInfo(3, 8);
+	if rank == 1 then
+		Duciel.main:SpellCast("Mind Flay", unit);
+	end
+end
+
+function Duciel.priest:Smite(unit)
+	if not(Duciel.main:FindBuff(15473, "player")) then
+		Duciel.main:SpellCast("Smite", unit);
+	end
+end
+
+function Duciel.priest:VampEmbrace(unit)
+    local name, icon, col, line, rank, maxRank = GetTalentInfo(3, 14);
+	if rank == 1 then
+		Cursive:Curse("Vampiric Embrace", unit, {refreshtime=0});
+	end
+end
+
+function Duciel.priest:ShadowDPS(unit, noVamp, noAOE)
     if not(pfUI.env.UnitChannelInfo("player")) then
 		Duciel.main:ProcessWaitingList();
 		Duciel.main:HerbalTea(500);
 		Duciel.priest:Shadowform();
-        Duciel.priest:InnerFire();
-		Duciel.priest:SWPain(unit);
+		Duciel.priest:InnerFire();
+		if noAOE then
+			Cursive:Curse("Shadow Word: Pain", unit, {refreshtime=0});
+		else
+			Cursive:Multicurse("Shadow Word: Pain", "RAID_MARK", {refreshtime=0});
+		end
 		if not(noVamp) then
 			Duciel.priest:VampEmbrace(unit);
 		end
 		Duciel.priest:MindBlast(unit);
-        Duciel.main:SpellCast("Mind Flay", unit);
+		Duciel.priest:MindFlay(unit);
+		Duciel.priest:Smite(unit);
 	end
 end
 
@@ -104,4 +95,11 @@ end
 function Duciel.priest:AutoHeal(spellName, threshold)
 	local unit = Duciel.main:AutoHealTarget(threshold);
 	Duciel.main:SpellCast(spellName, unit);
+end
+
+function Duciel.priest:AutoRenew(renew, threshold)
+	local unit = Duciel.main:AutoHealTarget(threshold, renewList, renew);
+	if unit ~= nil then
+		Duciel.main:SpellCast(renew, unit);
+	end
 end
